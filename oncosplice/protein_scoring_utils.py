@@ -57,7 +57,7 @@ def generate_report_single_mut(ref_proteome, var_proteome, missplicing, mutation
 
         full_report.append(report)
 
-    full_report = pd.concat(full_report, axis=1).transpose()
+    return pd.concat(full_report, axis=1).transpose()
 
 
 def define_missplicing_events(ref_exons, var_exons, rev):
