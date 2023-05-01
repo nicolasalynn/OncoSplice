@@ -5,14 +5,6 @@ from oncosplice.pre_mRNA import pre_mRNA
 from oncosplice.SpliceSite import SpliceSite
 
 class mature_mRNA(pre_mRNA):
-    """
-            Description: an object that stores an instance of a mature mRNA (post splicing)
-
-            Input:
-                    - donors (list of intron starts)
-                    - acceptors (list of intron ends)
-
-    """
 
     def __init__(self, transcript_start: int, transcript_end: int, rev: bool, chrm: str, donors, acceptors,
                  gene_name='undefined', transcript_id='undefined', transcript_type='undefined'):

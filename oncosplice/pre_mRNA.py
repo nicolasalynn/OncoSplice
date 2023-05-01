@@ -5,37 +5,6 @@ from geney import pull_fasta_seq_endpoints, reverse_complement
 from oncosplice.variant_utils import generate_mut_variant, Mutation
 
 class pre_mRNA:
-    """ Description: a class dedicated to representing a pre_mrna sequence.
-        Parameters:
-            - rev (required): whether the transcript is encoded on the positive or negative strand
-            - chrm: the chromosome (required) (str) that the transcript/gene is encoded in
-            - transcript_start (required) (relative to the sense strand)
-            - transcript_end (required) (relative to the sense strand)
-            - gene_name (optional): the name of the gene that the transcript corresponds to
-            - transcript_type (optional): a description of the role of the transcript (eg. protein coding)
-            - transcript_id (optional): the transcript's identifying id with version
-
-        Output: an instance of this object stores all the information required to construct the transcript sequence and
-                chromososomal coverage. Depending on whether the transcript is encoded on the + or - strand, the correct
-                start and end positions of the transcript are acquired and the pre-mRNA can be obtained using reference
-                build genome fasta files.
-
-                The two items that are obtained using the data provided are a sequence (with mutations) and chromsomal
-                coverage as a list (positioned so that can be overlaid on sequence). "
-
-        Functionality: - __valid_pre_mRNA: checks to make sure that the both the transcript start and end are integer
-                         values and makes sure that the chromosome defined is valid and has associated fasta data
-                         to_positive_strand: converts inplace the mRNA sequence and genomic indices to the positive
-                                             strand
-                         to_true_strand: converts inplace the mRNA sequence and genomic indices to the true encoded
-                                         strand
-                         generate_pre_mRNA: if __valid_pre_mRNA is satisfied, this funciton will generate the pre_mRNA
-                                            sequence and corresponding indices and will apply the passed mutations to
-                                            the sequence and coordinates. Once the mutations are applied, if necessary,
-                                            the sequence is then converted to the sense strand.
-                         apply_mutations: takes a list of mutation ids as an argument and will
-
-    """
 
     def __init__(self, transcript_start: int, transcript_end: int, rev: bool, chrm: str, gene_name='undefined',
                  transcript_id='undefined', transcript_type='undefined'):

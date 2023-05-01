@@ -1,151 +1,105 @@
 import numpy as np
 from Bio import pairwise2
-from Bio.pairwise2 import format_alignment
+# from Bio.pairwise2 import format_alignment
+
+import pandas as pd
 import re
 
 
-# import termplotlib as tpl
+def generate_report_single_mut(ref_proteome, var_proteome, missplicing, mutation):
+    full_report = []
+
+    for (ref_id, var_id) in [(ref_id, var_id) for ref_id in ref_proteome.keys() for var_id in var_proteome.keys() if ref_id == var_id.split('-')[0]]:
+
+        ### Compare and Score Ref protein and Isoform protein
+        ref_prot, var_prot = ref_proteome[ref_id], var_proteome[var_id]
+
+        alignment = get_logical_alignment(ref_prot.protein, var_prot.protein)
+        deleted, inserted = get_insertions_and_deletions(alignment)
+        W = 76
+        if W >= len(ref_prot.protein):
+            W = len(ref_prot.protein)-1
+
+        smoothed_conservation_vector = smooth_cons_scores(ref_prot.conservation_vector, W, W // 2)
+
+        deconv_del = calculate_del_penalty(deleted, smoothed_conservation_vector, W, W // 2)
+        deconv_ins = calculate_ins_penalty(inserted, smoothed_conservation_vector, W, W // 2)
+        oncosplice_score = combine_ins_and_del_scores(deconv_del, deconv_ins, W, W // 2)
+
+        pes, pir, es, ne, ir = define_missplicing_events(ref_prot.exon_boundaries, var_prot.exon_boundaries, ref_prot.rev)
+        description = '|'.join([v for v in [pes, pir, es, ne, ir] if v])
+
+        ### Record Data
+        report = pd.Series()
+        report.gene = ref_prot.gene_name
+        report.chrom = ref_prot.chrm
+        report.pos = mutation.start
+        report.ref = mutation.ref
+        report.alt = mutation.alt
+        report.transcipt_id = ref_prot.transcript_id
+        report.isoform_id = var_prot.transcript_id.split('-')[-1]
+        report.missed_acceptors = [pos for pos in missplicing.get('missed_acceptors', {}).keys() if pos in ref_prot.acceptors]
+        report.missed_donors = [pos for pos in missplicing.get('missed_donors', {}).keys() if pos in ref_prot.donors]
+        report.discovered_acceptors = list(missplicing.get('discovered_acceptors', {}).keys())
+        report.discovered_donors = list(missplicing.get('discovered_donors', {}).keys())
+        report.isoform_prevalence = var_prot.penetrance_weight
+        report.missplicing_event = description
+        report.missplicing_event_summary = summarize_missplicing_event(pes, pir, es, ne, ir)
+        report.reference_protein_length = len(ref_prot.protein)
+        report.variant_protein_length = len(var_prot.protein)
+        report.insertions = ','.join(list(inserted.values()))
+        report.deletions = ','.join(list(deleted.values()))
+        report.oncosplice_score = oncosplice_score
+        report.deconv_ins = deconv_ins
+        report.deconv_del = deconv_del
+        report.mutation_distance_from_5 = min([abs(pos - mutation.start) for pos in ref_prot.acceptors + [ref_prot.transcript_start]])
+        report.mutation_distance_from_3 = min([abs(pos - mutation.start) for pos in ref_prot + [ref_prot.transcript_end]])
+
+        full_report.append(report)
+
+    full_report = pd.concat(full_report, axis=1).transpose()
 
 
-def generate_report(ref_prot, var_prot, missplicing, mutations):
-    '''
-    Report 1: The oncosplice score
-    Report 2: The insertion score
-    Report 3: The deletion score
-    Report 4: General Information
-            a. gene function
-            b. gene association to oncogene or TSG
-            c. Number of affected transcripts
-            d. Verbal splicing description
-            e. Presence of mutation in dbSNP, ClinVar, and 1K Genome Project
+def define_missplicing_events(ref_exons, var_exons, rev):
 
-    Report 4: Per transcript isoform report -
-            a. Protein alignment
-            b. Novel peptides
-            c. Number of positions conserved
-            d. Number of added amino acids
-            f. Number of deleted amino acids
-            e. Verbal description of event (can take one of several values such as
-                        - frame shift and early termination where first {x} / {n} positions of the protein are conserved.
-                        - generally conserved with a novel {x} amino acid long peptide interrputing position {x} of {k}.
-                        - protein unchanged
-            f. Verbal description at level of splice sites/exons
-            g. If available, include tissue expression data of transcript
-    '''
-    sample = list(ref_prot.values())[0]
-    full_report, transcript_comprisons = {'gene_name': sample.gene_name}, {}
-    del_score, ins_score, full_score = [], [], []
-    for rtid, ref_protein in ref_prot.items():
-        transcript_comprisons_isoforms = {}
-        temp_del, temp_ins, temp_full = [], [], []
-        for vtid, var_protein in var_prot.items():
-            if var_protein.transcript_id.split('-')[0] == rtid:
-                transcript_comprisons_isoforms[vtid] = protein_change_report(ref_protein.protein, var_protein.protein,
-                                                                             ref_protein.conservation_vector, 76)
-                transcript_comprisons_isoforms[vtid]['verbal_description'] = describe_general_change(
-                    transcript_comprisons_isoforms[vtid])
-                transcript_comprisons_isoforms[vtid]['splice_site_difference'] = describe_splice_site_difference(
-                    ref_protein, var_protein)
-                temp_del.append(transcript_comprisons_isoforms[vtid]['deletion_score'])
-                temp_ins.append(transcript_comprisons_isoforms[vtid]['insertion_score'])
-                temp_full.append(transcript_comprisons_isoforms[vtid]['score'])
-        del_score.append(sum(temp_del) / len(temp_del))
-        ins_score.append(sum(temp_ins) / len(temp_ins))
-        full_score.append(sum(temp_full) / len(temp_full))
+    ref_introns = [(ref_exons[i][1], ref_exons[i+1][0]) for i in range(len(ref_exons) - 1)]
+    var_introns = [(var_exons[i][1], var_exons[i+1][0]) for i in range(len(var_exons) - 1)]
 
-        transcript_comprisons[rtid] = transcript_comprisons_isoforms
+    if not rev:
+        partial_exon_skipping = ','.join([f'Exon {exon_count+1} truncated: {(t1, t2)} --> {(s1, s2)}' for (s1, s2) in var_exons for exon_count, (t1, t2) in enumerate(ref_exons) if (s1 == t1 and s2 < t2) or (s1 > t1 and s2 == t2)])
+        partial_intron_retention = ','.join([f'Intron {intron_count + 1} partially retained: {(t1, t2)} --> {(s1, s2)}' for (s1, s2) in var_introns for intron_count, (t1, t2) in enumerate(ref_introns) if (s1 == t1 and s2 < t2) or (s1 > t1 and s2 == t2)])
 
-    # full_report['gene_description'] = query_gene_description(ref_prot.gene_name)
-    # full_report['gene_cancer_role'] = query_gene_cancer_associations(ref_prot.gene_name)
-    # full_report['mutation_crossref'] = {m: query_mutation_db(m) for m in mutations}
-    full_report['mutations'] = ', '.join(mutations)
-    full_report['missplicing'] = missplicing
-    full_report['scores'] = {
-        'score': max(full_score),
-        'deletion_score': max(del_score),
-        'insertion_score': max(ins_score)
-    }
-
-    full_report['transcript_comparison'] = transcript_comprisons
-
-    return full_report
+    else:
+        partial_exon_skipping = ','.join([f'Exon {exon_count+1} truncated: {(t1, t2)} --> {(s1, s2)}' for (s1, s2) in var_exons for exon_count, (t1, t2) in enumerate(ref_exons) if (s1 == t1 and s2 > t2) or (s1 < t1 and s2 == t2)])
+        partial_intron_retention = ','.join([f'Intron {intron_count + 1} partially retained: {(t1, t2)} --> {(s1, s2)}' for (s1, s2) in var_introns for intron_count, (t1, t2) in enumerate(ref_introns) if (s1 == t1 and s2 > t2) or (s1 < t1 and s2 == t2)])
 
 
-def query_gene_description(gene):
-    pass
+    exon_skipping = ','.join([f'Exon {exon_count + 1} skipped: {(t1, t2)}' for exon_count, (t1, t2) in enumerate(ref_exons) if
+                     t1 not in [s1 for s1, s2 in var_exons] and t2 not in [s2 for s1, s2 in var_exons]])
+    novel_exons = ','.join([f'Novel Exon: {(t1, t2)}' for (t1, t2) in var_exons if
+                   t1 not in [s1 for s1, s2 in ref_exons] and t2 not in [s2 for s1, s2 in ref_exons]])
+    intron_retention = ','.join([f'Intron {intron_count + 1} retained: {(t1, t2)}' for intron_count, (t1, t2) in enumerate(ref_introns) if
+                       t1 not in [s1 for s1, s2 in var_introns] and t2 not in [s2 for s1, s2 in var_introns]])
+
+    return partial_exon_skipping, partial_intron_retention, exon_skipping, novel_exons, intron_retention
+
+def summarize_missplicing_event(pes, pir, es, ne, ir):
+    event = []
+    if pes:
+        event.append('PES')
+    if es:
+        event.append('ES')
+    if pir:
+        event.append('PIR')
+    if ir:
+        event.append('IR')
+    if ne:
+        event.append('NE')
+
+    return event if len(event) > 1 else event[0]
 
 
-def query_gene_cancer_associations(gene):
-    pass
-
-
-def query_mutation_db(mut_id):
-    pass
-
-
-def describe_general_change(data):
-    print(data)
-    log = ''
-    if data['score'] == 0:
-        return 'Protein is conserved. No changes observed.'
-
-    if data['deletion_score'] > 100 or data['aligned_positions'] / data['reference_protein_length'] < 0.75:
-        log += 'Deletion score indicates some loss of function. '
-
-    if data['insertion_score'] > 0 and data['aligned_positions'] / data['reference_protein_length'] > 0.90:
-        log += 'Insertion score and general conservation indicates a novel peptide that may modify protein function.'
-
-    return log
-
-
-def describe_splice_site_difference(ref_prot, var_prot):
-    zipped_reference = list(
-        zip([ref_prot.transcript_start] + ref_prot.acceptors, ref_prot.donors + [ref_prot.transcript_end]))
-    zipped_variant = list(
-        zip([var_prot.transcript_start] + var_prot.acceptors, var_prot.donors + [var_prot.transcript_end]))
-    i = 0
-    for i, ref_exon in enumerate(zipped_reference):
-        var_exon = zipped_variant[i]
-        if ref_exon[0] != var_exon[0] and ref_exon[1] != var_exon[1]:
-            if ref_exon in zipped_variant[i:] and var_exon not in zipped_reference:
-                return i + 1, f'Novel exon in exon {i}/{len(zipped_reference)}: {var_exon}'
-            else:
-                return i + 1, f'Exon skipped in exon {i}/{len(zipped_reference)}: {ref_exon}'
-
-        elif ref_exon[0] != var_exon[0] and ref_exon[1] == var_exon[1]:
-            return i + 1, f'Using alternative acceptor in exon {i}/{len(zipped_reference)}: {ref_exon[0]} --> {var_exon[0]}'
-
-        elif ref_exon[0] == var_exon[0] and ref_exon[1] != var_exon[1]:
-            if var_exon[1] in [val[1] for val in zipped_reference[i + 1:]]:
-                return i + 1, f'Intron retention in exon {i}/{len(zipped_reference)}: {ref_exon} --> {var_exon}'
-            else:
-                return i + 1, f'Using alternative donor in exon {i}/{len(zipped_reference)}: {ref_exon[1]} --> {var_exon[1]}'
-
-    return 'No splicing difference detected.'
-
-
-def protein_change_report(r, v, cons_scores, W=76):
-    """
-        Purpose: a function that allows us to get a ngenome_general comparison in protein functionality. The method can
-                 operate simply via alignment, but it is able to use conservation estimates (conservation values for
-                 each nt in some reference sequence) to make its quantitative measurement more effective.
-
-        Input:   1. r(eference_seq) - some reference sequence (we call it reference in the case that we have
-                                       conservation data for it, otherwise it is simply an arbitary sequence in the
-                                       comparison).
-                 2. v(ariant_seq)    - some variant sequence(we call it variant in the case that we think of this
-                                       sequence as some isoform of the reference sequence, otherwise it can be an
-                                       arbitary sequence).
-                 3. cons_scores      - an array of conservation estimates for each nucleotide in the reference sequence.
-                                       In the case that conservation values are unavailable or unknown, it need not be
-                                       specified and the function will treat each nt position as equally weighted.
-
-        Output:  1. score - a value in the range of [0, 1] where 1 refers to complete preservation between the r and v
-                            and 0 refers to complete uniqueness between the two sequences.
-                 2. description - some mechanical descriptor of the differences of the two sequences.
-                 3. reference_protein_alignment -
-                 4. variant_protein_alignment -
-    """
+def get_insertions_and_deletions(alignment):
 
     def find_last_real_pos(pos, pos_map):
         if pos <= min(list(pos_map.keys())):
@@ -156,42 +110,12 @@ def protein_change_report(r, v, cons_scores, W=76):
 
         return pos_map[pos]
 
-    assert len(cons_scores) == len(
-        r), 'Length of conservation vector provided does not match the length of the reference protein.'
-    assert r, 'Reference protein must consist of amino acids. Protein passed is empty.'
-    if not v:
-        report = {
-            'score': sum(cons_scores),
-            'deletion_score': sum(cons_scores),
-            'insertion_score': 0,
-            'reference_protein_length': len(r),
-            'variant_protein_length': 0,
-            'reference_protein_alignment': '-',
-            'variant_protein_alignment': '-',
-            'insertions': {},
-            'deletions': {0: r},
-            'aligned_positions': 0,
-        }
-        return report
-
-    if W > len(r) // 2:
-        W = len(r) // 2
-
-    if W % 2 != 0:
-        W -= 1
-
-    PADDING = W // 2
-
-    best_alignment, gaps = get_logical_alignment(r, v)
-    print(format_alignment(*best_alignment))
-
-    ref_map = {j: p for p, j in enumerate([i for i, nt in enumerate(list(best_alignment.seqA)) if nt != '-'])}
-    # ref_map_inverted = {p: j for j, p in ref_map.items()}
-    aligned_pos, deleted_pos, inserted_pos = [], [], []
+    ref_map = {j: p for p, j in enumerate([i for i, nt in enumerate(list(alignment.seqA)) if nt != '-'])}
+    aligned_pos, deleted_pos, inserted_pos, missmatched_pos = [], [], [], []
     insertions, deletions = {}, {}
     last_event = 'ALIGN'
     del_start_pos = ''
-    for rel_pos, (ch_a, ch_b) in enumerate(list(zip(best_alignment.seqA, best_alignment.seqB))):
+    for rel_pos, (ch_a, ch_b) in enumerate(list(zip(alignment.seqA, alignment.seqB))):
         if ch_a == ch_b != '-':
             aligned_pos.append(rel_pos)
             last_event = 'ALIGN'
@@ -214,25 +138,7 @@ def protein_change_report(r, v, cons_scores, W=76):
                 last_event = 'INS'
                 insertions[point_of_insertion] = ch_b
 
-    bar, bav = str(best_alignment.seqA), str(best_alignment.seqB)
-    score, del_score, ins_score = score_alignment(deletions, insertions, cons_scores, W, PADDING)
-    if ins_score > del_score:
-        print(f"CAPTURED INTERESTING EVENT!!!!\n{bar}\n{bav}")
-
-    report = {
-        'score': score,
-        'deletion_score': del_score,
-        'insertion_score': ins_score,
-        'reference_protein_length': len(r),
-        'variant_protein_length': len(v),
-        'reference_protein_alignment': bar,
-        'variant_protein_alignment': bav,
-        'insertions': {f'{i}/{len(r)}': seq for i, seq in insertions.items()},
-        'deletions': deletions,
-        'aligned_positions': best_alignment.score,
-    }
-
-    return report
+    return deletions, insertions
 
 
 def get_logical_alignment(r, v):
@@ -253,8 +159,9 @@ def get_logical_alignment(r, v):
 
     # We return the alignment with the smallest number of gaps.
     try:
-        return alignments[block_counts.index(min(block_counts))], min(block_counts)
+        return alignments[block_counts.index(min(block_counts))]
     except AttributeError:
+        print("Error get_logical_alignment")
         print(block_counts, alignments, r, v)
 
 
@@ -316,16 +223,6 @@ def combine_ins_and_del_scores(d_cons_scores, i_cons_scores, W, PADDING):
     # median_p = np.median(penalty)
     # penalty = [p - median_p for p in penalty]
     return max(penalty)
-
-
-def score_alignment(deletions, insertions, cons_scores, W, PADDING):
-    cons_scores = smooth_cons_scores(cons_scores, W, PADDING)
-    del_penalty = calculate_del_penalty(deletions, cons_scores, W, PADDING)
-    ins_penalty = calculate_ins_penalty(insertions, cons_scores, W, PADDING)
-    return combine_ins_and_del_scores(del_penalty, ins_penalty, W, PADDING), combine_ins_and_del_scores(del_penalty,
-                                                                                                        del_penalty, W,
-                                                                                                        PADDING), combine_ins_and_del_scores(
-        ins_penalty, ins_penalty, W, PADDING)
 
 
 
