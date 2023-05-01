@@ -73,7 +73,7 @@ class EmptyGene:
                        acceptors=self.transcripts[tid].get('acceptors', []),
                        used_tis=self.transcripts[tid]['TIS'],
                        used_tts=self.transcripts[tid]['TTS'],
-                       penetrance=self.transcripts[tid].get('penetrance', 1))
+                       penetrance=self.transcripts[tid].get('penetrance_weight', 1))
 
     def develop_proteome(self, experimental=False):
         proteome = {}

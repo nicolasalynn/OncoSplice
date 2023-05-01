@@ -35,6 +35,19 @@ def generate_mut_variant(seq: str, indices: list, start_pos: int, end_pos: int, 
 
         return new_seq, new_indices, True, [], ''
 
+    elif var_type == 'INDEL':
+        '''
+        In case of INDEL, all characters from start_pos to end_pos are altered.
+        Thus, both start_pos and end_pos in seq are altered.
+        '''
+
+        assert seq[indices.index(
+            start_pos):indices.index(end_pos)+1] == ref, f'Reference allele does not match position in SNP. {seq[indices.index(start_pos):indices.index(end_pos)+1]}, {start_pos}, {ref}'
+
+        rel_start, rel_end = indices.index(start_pos), indices.index(end_pos) + 1
+        return seq[:rel_start] + mut + seq[rel_end:], indices[:rel_start] + [start_pos + i/1000 for i in range(1, len(mut))+1] + indices[rel_end:], True, [start_pos], ''
+
+
     elif var_type == 'DEL':
         '''
         In case of DEL, all charaters from start_pos to end_pos are removed.
@@ -59,7 +72,7 @@ class EpistaticSet:
         self.epistatic_id = epistatic_set
         self.variants = [Mutation(m) for m in self.epistatic_id.split('|')]
         self.gene = self.variants[0].gene
-        self.chrom = self.variants[0].chrom
+        self.chrom = self.variants[0].chrom.strip('chr')
         self.file_identifier = ','.join([v.file_identifier for v in self.variants])
 
     def __str__(self):
@@ -74,7 +87,7 @@ class Mutation:
         self.mut_id = mid
         gene, chrom, pos, ref, alt = mid.split(':')
         self.gene = gene
-        self.chrom = chrom
+        self.chrom = chrom.strip('chr')
         self.start = int(pos)
         self.ref = ref
         self.alt = alt
@@ -87,6 +100,8 @@ class Mutation:
             self.vartype = 'INS'
         elif self.alt == '-':
             self.vartype = 'DEL'
+        elif len(self.alt) > 1 and len(self.ref) > 1:
+            self.vartype = 'INDEL'
 
         if self.vartype == 'DEL' or self.vartype == 'INDEL':
            self.end = self.start + len(self.ref) - 1

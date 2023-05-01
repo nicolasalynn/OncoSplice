@@ -14,7 +14,11 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
 
         ### Compare and Score Ref protein and Isoform protein
         ref_prot, var_prot = ref_proteome[ref_id], var_proteome[var_id]
-
+        no_start_codon = False
+        if not var_prot.protein:
+            no_start_codon = True
+            var_prot.protein = '*'
+            
         alignment = get_logical_alignment(ref_prot.protein, var_prot.protein)
         deleted, inserted = get_insertions_and_deletions(alignment)
         W = 76
@@ -26,7 +30,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         deconv_del = calculate_del_penalty(deleted, smoothed_conservation_vector, W, W // 2)
         deconv_ins = calculate_ins_penalty(inserted, smoothed_conservation_vector, W, W // 2)
         oncosplice_score = combine_ins_and_del_scores(deconv_del, deconv_ins, W, W // 2)
-        deconv_ins, deconv_del = combine_ins_and_del_scores(deconv_ins, deconv_ins, W, W//2), combine_ins_and_del_scores(deconv_del, deconv_del, W, W//2)
+        deconv_ins, deconv_del = combine_ins_and_del_scores(deconv_ins, deconv_ins, W, W//2) / 2, combine_ins_and_del_scores(deconv_del, deconv_del, W, W//2) / 2
         pes, pir, es, ne, ir = define_missplicing_events(ref_prot.exon_boundaries(), var_prot.exon_boundaries(), ref_prot.rev)
         description = '|'.join([v for v in [pes, pir, es, ne, ir] if v])
 
@@ -42,13 +46,15 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
             report['ref'] = mutation.ref
             report['alt'] = mutation.alt
 
+        report['strand'] = '+' if not ref_prot.rev else '-'
         report['transcipt_id'] = ref_prot.transcript_id
         report['isoform_id'] = var_prot.transcript_id.split('-')[-1]
         report['missed_acceptors'] = ', '.join([str(pos) for pos in missplicing.get('missed_acceptors', {}).keys() if pos in ref_prot.acceptors])
         report['missed_donors'] = ', '.join([str(pos) for pos in missplicing.get('missed_donors', {}).keys() if pos in ref_prot.donors])
-        report['discovered_acceptors'] = ', '.join([str(pos) for pos in missplicing.get('discovered_acceptors', {}).keys()])
-        report['discovered_donors'] = ', '.join([str(pos) for pos in missplicing.get('discovered_donors', {}).keys()])
+        report['discovered_acceptors'] = ', '.join([str(pos) for pos in missplicing.get('discovered_acceptors', {}).keys() if max(ref_prot.transcript_start, ref_prot.transcript_end) <= pos <= max(ref_prot.transcript_start, ref_prot.transcript_end)])
+        report['discovered_donors'] = ', '.join([str(pos) for pos in missplicing.get('discovered_donors', {}).keys() if max(ref_prot.transcript_start, ref_prot.transcript_end) <= pos <= max(ref_prot.transcript_start, ref_prot.transcript_end)])
         report['isoform_prevalence'] = var_prot.penetrance
+        report['no_start_codon_found'] = no_start_codon
         report['missplicing_event'] = description
         report['missplicing_event_summary'] = summarize_missplicing_event(pes, pir, es, ne, ir)
         report['reference_protein_length'] = len(ref_prot.protein)
@@ -159,6 +165,7 @@ def get_logical_alignment(r, v):
         splicing, it is most common that blocks are inserted or deleted and therefore the most likely comparison is
         one in which gaps are minimalized and correspond to those alternative splicing blocks.
     '''
+
     alignments = pairwise2.align.globalms(r, v, 1, -1, -3, -0.5)
 
     if len(alignments) == 1:
