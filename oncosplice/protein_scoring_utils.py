@@ -5,8 +5,9 @@ from Bio import pairwise2
 import pandas as pd
 import re
 
+from oncosplice.variant_utils import Mutation, EpistaticSet
 
-def generate_report_single_mut(ref_proteome, var_proteome, missplicing, mutation):
+def generate_report(ref_proteome, var_proteome, missplicing, mutation):
     full_report = []
 
     for (ref_id, var_id) in [(ref_id, var_id) for ref_id in ref_proteome.keys() for var_id in var_proteome.keys() if ref_id == var_id.split('-')[0]]:
@@ -33,9 +34,12 @@ def generate_report_single_mut(ref_proteome, var_proteome, missplicing, mutation
         report = pd.Series()
         report.gene = ref_prot.gene_name
         report.chrom = ref_prot.chrm
-        report.pos = mutation.start
-        report.ref = mutation.ref
-        report.alt = mutation.alt
+        if isinstance(mutation, EpistaticSet):
+            report.mut_id = mutation.mut_id
+        elif isinstance(mutation, Mutation):
+            report.pos = mutation.start
+            report.ref = mutation.ref
+            report.alt = mutation.alt
         report.transcipt_id = ref_prot.transcript_id
         report.isoform_id = var_prot.transcript_id.split('-')[-1]
         report.missed_acceptors = [pos for pos in missplicing.get('missed_acceptors', {}).keys() if pos in ref_prot.acceptors]

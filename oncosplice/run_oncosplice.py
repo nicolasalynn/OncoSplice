@@ -28,7 +28,7 @@ def main(mut_id, sai_threshold=25):
     ref_proteome, var_proteome = reference_gene.develop_proteome(), variant_gene.develop_proteome(experimental=True)
 
     ################### GENERATE VARIANT REPORT
-    report = generate_report(ref_proteome, var_proteome, missplicing, mut_id.split('|'))
+    report = generate_report(ref_proteome, var_proteome, missplicing, input)
     return variant_gene.__dict__, report
 
 if __name__ == '__main__':
