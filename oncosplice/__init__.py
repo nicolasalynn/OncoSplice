@@ -11,6 +11,7 @@ if sys.platform != 'darwin':
     MACHINE = 'POWER'
     oncosplice_setup.update({
         'MACHINE': 'HOME',
+        'HOME': True,
         'CHROM_SOURCE': Path('/tamir1/lab_resources/Genomes/Human/human_hg38/Chromosome'),
         'MRNA_PATH': Path('/tamir2/nicolaslynn/data/genbank/mrna_database/mRNAs/protein_coding'),
         'CONS_PATH': Path('/tamir1/nicolaslynn/data/Conservation/data'),
