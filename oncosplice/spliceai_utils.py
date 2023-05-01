@@ -82,7 +82,7 @@ def find_ss_changes(ref_dct, mut_dct, truths, threshold=0.5):
 
 
 def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500, sai_threshold=0.5):
-    positions = [m[0].start for m in mutations]
+    positions = [m.start for m in mutations]
     seq_start_pos = min(positions) - sai_mrg_context - min_coverage
     seq_end_pos = max(positions) + sai_mrg_context + min_coverage + 1
 
