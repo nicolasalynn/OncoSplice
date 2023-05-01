@@ -98,11 +98,11 @@ class pre_mRNA:
                     generate_mut_variant(
                         mrna_seq,
                         mrna_indices,
-                        start_pos=expanded_mut['Start_Position'],
-                        end_pos=expanded_mut['End_Position'],
-                        var_type=expanded_mut['Variant_Type'],
-                        ref=expanded_mut['Reference_Allele'],
-                        mut=expanded_mut['Tumor_Seq_Allele2'])
+                        start_pos=expanded_mut.start,
+                        end_pos=expanded_mut.end,
+                        var_type=expanded_mut.vartype,
+                        ref=expanded_mut.ref,
+                        mut=expanded_mut.alt)
 
                 if successfully_applied:
                     self.applied_mutations.append(m)
@@ -111,21 +111,21 @@ class pre_mRNA:
                 else:
                     self.generation_report += f'Mutation {m} not incorporated.)'
                     if self.rev:
-                        if expanded_mut['Start_Position'] > self.transcript_start:
-                            distance_before = expanded_mut['Start_Position'] - self.transcript_start
+                        if expanded_mut.start > self.transcript_start:
+                            distance_before = expanded_mut.start - self.transcript_start
                             self.generation_report += f'Mutation occurs {distance_before} ' \
                                                       f'nucleotides before the transcript start site.'
-                        elif expanded_mut['Start_Position'] < self.transcript_end:
-                            distance_after = self.transcript_end - expanded_mut['Start_Position']
+                        elif expanded_mut.start < self.transcript_end:
+                            distance_after = self.transcript_end - expanded_mut.start
                             self.generation_report += f'Mutation occurs {distance_after} ' \
                                                       f'nucleotides after the transcript end site.'
                     else:
-                        if expanded_mut['Start_Position'] < self.transcript_start:
-                            distance_before = self.transcript_start - expanded_mut['Start_Position']
+                        if expanded_mut.start < self.transcript_start:
+                            distance_before = self.transcript_start - expanded_mut.start
                             self.generation_report += f'Mutation occurs {distance_before} ' \
                                                       f'nucleotides before the transcript start site.'
-                        elif expanded_mut['Start_Position'] > self.transcript_end:
-                            distance_after = expanded_mut['Start_Position'] - self.transcript_end
+                        elif expanded_mut.start > self.transcript_end:
+                            distance_after = expanded_mut.start - self.transcript_end
                             self.generation_report += f'Mutation occurs {distance_after} ' \
                                                       f'nucleotides after the transcript end site.'
 

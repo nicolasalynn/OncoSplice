@@ -1,6 +1,6 @@
 import numpy as np
 from Bio import pairwise2
-# from Bio.pairwise2 import format_alignment
+from Bio.pairwise2 import format_alignment
 
 import pandas as pd
 import re
@@ -26,42 +26,45 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         deconv_del = calculate_del_penalty(deleted, smoothed_conservation_vector, W, W // 2)
         deconv_ins = calculate_ins_penalty(inserted, smoothed_conservation_vector, W, W // 2)
         oncosplice_score = combine_ins_and_del_scores(deconv_del, deconv_ins, W, W // 2)
-
-        pes, pir, es, ne, ir = define_missplicing_events(ref_prot.exon_boundaries, var_prot.exon_boundaries, ref_prot.rev)
+        deconv_ins, deconv_del = combine_ins_and_del_scores(deconv_ins, deconv_ins, W, W//2), combine_ins_and_del_scores(deconv_del, deconv_del, W, W//2)
+        pes, pir, es, ne, ir = define_missplicing_events(ref_prot.exon_boundaries(), var_prot.exon_boundaries(), ref_prot.rev)
         description = '|'.join([v for v in [pes, pir, es, ne, ir] if v])
 
         ### Record Data
-        report = pd.Series()
-        report.gene = ref_prot.gene_name
-        report.chrom = ref_prot.chrm
-        if isinstance(mutation, EpistaticSet):
-            report.mut_id = mutation.mut_id
-        elif isinstance(mutation, Mutation):
-            report.pos = mutation.start
-            report.ref = mutation.ref
-            report.alt = mutation.alt
-        report.transcipt_id = ref_prot.transcript_id
-        report.isoform_id = var_prot.transcript_id.split('-')[-1]
-        report.missed_acceptors = [pos for pos in missplicing.get('missed_acceptors', {}).keys() if pos in ref_prot.acceptors]
-        report.missed_donors = [pos for pos in missplicing.get('missed_donors', {}).keys() if pos in ref_prot.donors]
-        report.discovered_acceptors = list(missplicing.get('discovered_acceptors', {}).keys())
-        report.discovered_donors = list(missplicing.get('discovered_donors', {}).keys())
-        report.isoform_prevalence = var_prot.penetrance_weight
-        report.missplicing_event = description
-        report.missplicing_event_summary = summarize_missplicing_event(pes, pir, es, ne, ir)
-        report.reference_protein_length = len(ref_prot.protein)
-        report.variant_protein_length = len(var_prot.protein)
-        report.insertions = ','.join(list(inserted.values()))
-        report.deletions = ','.join(list(deleted.values()))
-        report.oncosplice_score = oncosplice_score
-        report.deconv_ins = deconv_ins
-        report.deconv_del = deconv_del
-        report.mutation_distance_from_5 = min([abs(pos - mutation.start) for pos in ref_prot.acceptors + [ref_prot.transcript_start]])
-        report.mutation_distance_from_3 = min([abs(pos - mutation.start) for pos in ref_prot + [ref_prot.transcript_end]])
 
+        report = {}
+        report['gene'] = ref_prot.gene_name
+        report['chrom'] = ref_prot.chrm
+        if isinstance(mutation, EpistaticSet):
+            report['mut_id'] = mutation.mut_id
+        elif isinstance(mutation, Mutation):
+            report['pos'] = mutation.start
+            report['ref'] = mutation.ref
+            report['alt'] = mutation.alt
+
+        report['transcipt_id'] = ref_prot.transcript_id
+        report['isoform_id'] = var_prot.transcript_id.split('-')[-1]
+        report['missed_acceptors'] = ', '.join([str(pos) for pos in missplicing.get('missed_acceptors', {}).keys() if pos in ref_prot.acceptors])
+        report['missed_donors'] = ', '.join([str(pos) for pos in missplicing.get('missed_donors', {}).keys() if pos in ref_prot.donors])
+        report['discovered_acceptors'] = ', '.join([str(pos) for pos in missplicing.get('discovered_acceptors', {}).keys()])
+        report['discovered_donors'] = ', '.join([str(pos) for pos in missplicing.get('discovered_donors', {}).keys()])
+        report['isoform_prevalence'] = var_prot.penetrance
+        report['missplicing_event'] = description
+        report['missplicing_event_summary'] = summarize_missplicing_event(pes, pir, es, ne, ir)
+        report['reference_protein_length'] = len(ref_prot.protein)
+        report['variant_protein_length'] = len(var_prot.protein)
+        report['insertions'] = ','.join(list(inserted.values()))
+        report['deletions'] = ','.join(list(deleted.values()))
+        report['oncosplice_score'] = oncosplice_score
+        report['deconv_ins'] = deconv_ins
+        report['deconv_del'] = deconv_del
+        report['mutation_distance_from_5'] = min([abs(pos - mutation.start) for pos in ref_prot.acceptors + [ref_prot.transcript_start]])
+        report['mutation_distance_from_3'] = min([abs(pos - mutation.start) for pos in ref_prot.donors + [ref_prot.transcript_end]])
+        report = pd.Series(report)
         full_report.append(report)
 
-    return pd.concat(full_report, axis=1).transpose()
+    full_report = pd.concat(full_report, axis=1).transpose()
+    return full_report
 
 
 def define_missplicing_events(ref_exons, var_exons, rev):
@@ -100,7 +103,12 @@ def summarize_missplicing_event(pes, pir, es, ne, ir):
     if ne:
         event.append('NE')
 
-    return event if len(event) > 1 else event[0]
+    if len(event) > 1:
+        return event
+    elif len(event) == 1:
+        return event[0]
+    else:
+        return '-'
 
 
 def get_insertions_and_deletions(alignment):
@@ -155,7 +163,7 @@ def get_logical_alignment(r, v):
 
     if len(alignments) == 1:
         seqa, seqb = re.sub('-+', '-', alignments[0].seqA), re.sub('-+', '-', alignments[0].seqB)
-        return alignments[0], seqa.count('-') + seqb.count('-')
+        return alignments[0]
 
     # This calculates the number of gaps in each alignment.
     block_counts = [re.sub('-+', '-', al.seqA).count('-') + re.sub('-+', '-', al.seqB).count('-') for al in
@@ -163,7 +171,10 @@ def get_logical_alignment(r, v):
 
     # We return the alignment with the smallest number of gaps.
     try:
-        return alignments[block_counts.index(min(block_counts))]
+        out = alignments[block_counts.index(min(block_counts))]
+        # print(format_alignment(*out))
+        return out
+
     except AttributeError:
         print("Error get_logical_alignment")
         print(block_counts, alignments, r, v)

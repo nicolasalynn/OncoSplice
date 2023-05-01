@@ -11,11 +11,11 @@ class Protein(mature_mRNA):
 
     def __init__(self, transcript_start: int, transcript_end: int, rev: bool, chrm: str, donors: list, acceptors: list,
                  gene_name='undefined', transcript_id='undefined', transcript_type='undefined',
-                 used_tis: int = None, used_tts: int = None):
+                 used_tis: int = None, used_tts: int = None, penetrance: float = 1.0):
 
         mature_mRNA.__init__(self, transcript_start=transcript_start, transcript_end=transcript_end, rev=rev,
                              chrm=chrm, donors=donors, acceptors=acceptors, gene_name=gene_name,
-                             transcript_id=transcript_id, transcript_type=transcript_type)
+                             transcript_id=transcript_id, transcript_type=transcript_type, penetrance=penetrance)
         self.used_tis = used_tis
         self.used_tts = used_tts
         self.orf = ''

@@ -7,7 +7,7 @@ from oncosplice.SpliceSite import SpliceSite
 class mature_mRNA(pre_mRNA):
 
     def __init__(self, transcript_start: int, transcript_end: int, rev: bool, chrm: str, donors, acceptors,
-                 gene_name='undefined', transcript_id='undefined', transcript_type='undefined'):
+                 gene_name='undefined', transcript_id='undefined', transcript_type='undefined', penetrance=1):
         pre_mRNA.__init__(self, transcript_start=transcript_start, transcript_end=transcript_end,
                           rev=rev, chrm=chrm, gene_name=gene_name, transcript_id=transcript_id,
                           transcript_type=transcript_type)
@@ -18,6 +18,7 @@ class mature_mRNA(pre_mRNA):
         self.donors.sort(reverse=self.rev)
         self.acceptors.sort(reverse=self.rev)
 
+        self.penetrance = penetrance
         self.mature_mrna, self.mature_indices = '', []
 
     def __len__(self):
@@ -122,19 +123,19 @@ class mature_mRNA(pre_mRNA):
         exon_starts = {v: 1 for v in self.acceptors + [self.transcript_start]}
         exon_ends = {v: 1 for v in self.donors + [self.transcript_end]}
 
-        for k, v in aberrant_splicing['missed_donors'].items():
+        for k, v in aberrant_splicing.get('missed_donors', {}).items():
             if k in exon_ends.keys():
                 exon_ends[k] = v['absolute']
 
         exon_ends.update(
-            {k: v['absolute'] for k, v in aberrant_splicing['discovered_donors'].items() if lower_range <= k <= upper_range})
+            {k: v['absolute'] for k, v in aberrant_splicing.get('discovered_donors', {}).items() if lower_range <= k <= upper_range})
 
-        for k, v in aberrant_splicing['missed_acceptors'].items():
+        for k, v in aberrant_splicing.get('missed_acceptors', {}).items():
             if k in exon_starts.keys():
                 exon_starts[k] = v['absolute']
 
         exon_starts.update(
-            {k: v['absolute'] for k, v in aberrant_splicing['discovered_acceptors'].items() if lower_range <= k <= upper_range})
+            {k: v['absolute'] for k, v in aberrant_splicing.get('discovered_acceptors', {}).items() if lower_range <= k <= upper_range})
 
         nodes = [SpliceSite(pos=pos, ss_type=0, prob=prob) for pos, prob in exon_ends.items() if
                  lower_range <= pos <= upper_range] + \
@@ -186,6 +187,7 @@ class mature_mRNA(pre_mRNA):
 
         new_paths, prob_sum = {}, 0
         for i, path in enumerate(nx.all_simple_paths(G, self.transcript_start, self.transcript_end)):
+            # print(f"New path: {path}")
             curr_prob = path_weight_mult(G, path, 'weight')
             prob_sum += curr_prob
             new_paths[i] = {'acceptors': sorted([p for p in path if p in exon_starts.keys() and p != self.transcript_start], reverse=rev),
@@ -196,7 +198,7 @@ class mature_mRNA(pre_mRNA):
         for i, d in new_paths.items():
             d['path_weight'] = round(d['path_weight'] / prob_sum, 2)
 
-        new_paths = {k: v for k, v in new_paths.items() if v['path_weight'] > 0.05}
+        new_paths = {k: v for k, v in new_paths.items() if v['path_weight'] > 0.01}
         return list(new_paths.values())
 
 

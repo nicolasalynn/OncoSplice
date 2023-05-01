@@ -16,10 +16,11 @@ def main(mut_id, sai_threshold=25):
     print(f'>> Processing: {input}')
 
     ################### MISSPLICING
-    missplicing = find_missplicing_spliceai_adaptor(input=input, sai_threshold=round(sai_threshold/100, 3))
-
+    missplicing = find_missplicing_spliceai_adaptor(input=input, sai_threshold=round(sai_threshold/100, 3), force=False)
+    print(f'\tMissplicing: {missplicing}')
+    
     ################### VARIANT ANNOTATIONS
-    annot_file = get_correct_gene_file(input.gene, target_dir=oncosplice_setup['MRNA_PATH'])
+    annot_file = get_correct_gene_file(input.gene, target_directory=oncosplice_setup['MRNA_PATH'])
     if not annot_file:
         return f"No data for gene {input.gene}."
 

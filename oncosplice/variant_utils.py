@@ -62,6 +62,11 @@ class EpistaticSet:
         self.chrom = self.variants[0].chrom
         self.file_identifier = ','.join([v.file_identifier for v in self.variants])
 
+    def __str__(self):
+        return '|'.join([m.mut_id for m in self.variants])
+
+    def __repr__(self):
+        return '|'.join([m.mut_id for m in self.variants])
 
 
 class Mutation:
@@ -70,7 +75,7 @@ class Mutation:
         gene, chrom, pos, ref, alt = mid.split(':')
         self.gene = gene
         self.chrom = chrom
-        self.start = pos
+        self.start = int(pos)
         self.ref = ref
         self.alt = alt
 
@@ -90,3 +95,8 @@ class Mutation:
 
         self.file_identifier = f'{self.gene}_{self.chrom}_{self.start}_{self.ref}_{self.alt}'
 
+    def __str__(self):
+        return self.mut_id
+
+    def __repr__(self):
+        return self.mut_id

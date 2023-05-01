@@ -164,10 +164,10 @@ def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500
     missplicing = {'missed_acceptors': dap, 'missed_donors': ddp, 'discovered_acceptors': iap, 'discovered_donors': idp}
     missplicing = {outk: {float(k): v for k, v in outv.items()} for outk, outv in missplicing.items()}
     missplicing = {outk: {int(k) if k.is_integer() else k: v for k, v in outv.items()} for outk, outv in missplicing.items()}
-    return {k: v for k, v in missplicing.items() if v}
+    return missplicing
 
 
-def find_missplicing_spliceai_adaptor(input, sai_mrg_context=5000, min_coverage=2500, sai_threshold=0.5):
+def find_missplicing_spliceai_adaptor(input, sai_mrg_context=5000, min_coverage=2500, sai_threshold=0.5, force=False):
     if isinstance(input, EpistaticSet):
         splicingdb_path = oncosplice_setup['MISSPLICING_PATH'] / f'spliceai_{int(sai_threshold*100)}_colab'
         mutations = input.variants
@@ -185,8 +185,12 @@ def find_missplicing_spliceai_adaptor(input, sai_mrg_context=5000, min_coverage=
         splicing_res_path.mkdir(parents=False)
 
     missplicing_path = splicing_res_path / f"missplicing_{input.file_identifier}.json"
-    if oncosplice_setup['HOME'] and missplicing_path.exists():
-        return unload_json(missplicing_path)
+    if oncosplice_setup['HOME'] and missplicing_path.exists() and not force:
+        missplicing = unload_json(missplicing_path)
+        missplicing = {outk: {float(k): v for k, v in outv.items()} for outk, outv in missplicing.items()}
+        missplicing = {outk: {int(k) if k.is_integer() else k: v for k, v in outv.items()} for outk, outv in
+                       missplicing.items()}
+        return missplicing
 
     missplicing = find_missplicing_spliceai(mutations, sai_mrg_context=sai_mrg_context, min_coverage=min_coverage, sai_threshold=sai_threshold)
     dump_json(missplicing_path, missplicing)

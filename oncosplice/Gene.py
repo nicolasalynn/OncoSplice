@@ -72,7 +72,8 @@ class EmptyGene:
                        donors=self.transcripts[tid].get('donors', []),
                        acceptors=self.transcripts[tid].get('acceptors', []),
                        used_tis=self.transcripts[tid]['TIS'],
-                       used_tts=self.transcripts[tid]['TTS'])
+                       used_tts=self.transcripts[tid]['TTS'],
+                       penetrance=self.transcripts[tid].get('penetrance', 1))
 
     def develop_proteome(self, experimental=False):
         proteome = {}
@@ -139,6 +140,9 @@ class AnnotatedGene(EmptyGene):
 
         variant_gene = self.__copy__()
         variant_gene.mutations = mut_ids.split('|')
+        variant_gene.transcripts = {}
+        variant_gene.data = {}
+        
         for tid in self.transcripts.keys():
             ref_transcript = self.develop_mature_mrna(tid)
 
@@ -146,7 +150,6 @@ class AnnotatedGene(EmptyGene):
                     ref_transcript.develop_aberrant_splicing(
                                               aberrant_splicing=aberrant_splicing,
                                               rev=self.rev)):
-
                 var_transcript = copy.deepcopy(self.transcripts[tid])
                 var_transcript['protein_seq'] = var_transcript['transcript_seq'] = ''
                 var_transcript['transcript_id'] += f'-{tid_counter}'
