@@ -188,8 +188,9 @@ def find_missplicing_spliceai_adaptor(input, sai_mrg_context=5000, min_coverage=
     if oncosplice_setup['HOME'] and missplicing_path.exists() and not force:
         missplicing = unload_json(missplicing_path)
         missplicing = {outk: {float(k): v for k, v in outv.items()} for outk, outv in missplicing.items()}
-        missplicing = {outk: {int(k) if k.is_integer() else k: v for k, v in outv.items()} for outk, outv in
+        missplicing = {outk: {int(k) if k.is_integer() or 'missed' in outk else k: v for k, v in outv.items()} for outk, outv in
                        missplicing.items()}
+
         return missplicing
 
     missplicing = find_missplicing_spliceai(mutations, sai_mrg_context=sai_mrg_context, min_coverage=min_coverage, sai_threshold=sai_threshold)

@@ -18,7 +18,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
             no_start_codon = True
             var_prot.protein = '*'
             
-        alignment = get_logical_alignment(ref_prot.protein, var_prot.protein)
+        alignment, num_ins, num_del = get_logical_alignment(ref_prot.protein, var_prot.protein)
         deleted, inserted = get_insertions_and_deletions(alignment)
         W = 76
         if W >= len(ref_prot.protein):
@@ -59,6 +59,8 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['reference_protein_length'] = len(ref_prot.protein)
         report['variant_protein_length'] = len(var_prot.protein)
         report['insertions'] = ','.join(list(inserted.values()))
+        report['num_insertions'] = num_ins
+        report['num_deletions'] = num_del
         report['deletions'] = ','.join(list(deleted.values()))
         report['oncosplice_score'] = oncosplice_score
         report['deconv_ins'] = deconv_ins
@@ -70,8 +72,8 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
             report['mutation_distance_from_5'] = [mutation.start - pos for pos in ref_prot.acceptors if pos <= mutation.start]
             report['mutation_distance_from_3'] = [pos - mutation.start for pos in ref_prot.donors if pos >= mutation.start]
 
-        report['mutation_distance_from_5'] = report['mutation_distance_from_5'][0] if len(report['mutation_distance_from_5']) == 1 else '-'
-        report['mutation_distance_from_3'] = report['mutation_distance_from_3'][0] if len(report['mutation_distance_from_3']) == 1 else '-'
+        report['mutation_distance_from_5'] = min(report['mutation_distance_from_5']) if len(report['mutation_distance_from_5']) == 1 else '-'
+        report['mutation_distance_from_3'] = min(report['mutation_distance_from_3']) if len(report['mutation_distance_from_3']) == 1 else '-'
 
         report = pd.Series(report)
         full_report.append(report)
@@ -177,14 +179,19 @@ def get_logical_alignment(r, v):
     alignments = pairwise2.align.globalms(r, v, 1, -3, -3, 0, penalize_end_gaps=(True, False))
 
     if len(alignments) == 1:
-        return alignments[0]
+        optimal_alignment = alignments[0]
+    else:
+        # This calculates the number of gaps in each alignment.
+        number_of_gaps = [re.sub('-+', '-', al.seqA).count('-') + re.sub('-+', '-', al.seqB).count('-') for al in
+                        alignments]
+        optimal_alignment = alignments[number_of_gaps.index(min(number_of_gaps))]
 
-    # This calculates the number of gaps in each alignment.
-    block_counts = [re.sub('-+', '-', al.seqA).count('-') + re.sub('-+', '-', al.seqB).count('-') for al in
-                    alignments]
+    num_insertions = re.sub('-+', '-', optimal_alignment.seqA).count('-')
+    num_deletions = re.sub('-+', '-', optimal_alignment.seqB).count('-')
 
+    print(format_alignment(*optimal_alignment))
     # We return the alignment with the smallest number of gaps.
-    return alignments[block_counts.index(min(block_counts))]
+    return optimal_alignment, num_insertions, num_deletions
 
 
 def smooth_cons_scores(cons_scores, W, PADDING):
