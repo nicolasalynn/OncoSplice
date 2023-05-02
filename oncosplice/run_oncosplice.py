@@ -27,31 +27,13 @@ def main(mut_id, sai_threshold=25):
     print(f'\tMissplicing: {missplicing}')
     
     ################### VARIANT ANNOTATIONS
-
-
     reference_gene = AnnotatedGene(annot_file)
     variant_gene = reference_gene.create_gene_isoform(mut_ids=mut_id, aberrant_splicing=missplicing)
     ref_proteome, var_proteome = reference_gene.develop_proteome(), variant_gene.develop_proteome(experimental=True)
 
     ################### GENERATE VARIANT REPORT
     report = generate_report(ref_proteome, var_proteome, missplicing, input)
+
     return variant_gene.__dict__, report
 
-if __name__ == '__main__':
-    # prs, _ = parse_in_args()
-    # args_data = unload_json(prs.args_file)
-    # out_dir = args_data['results']
-    # mut_data = args_data['mutations']
-    # annotations, summary = main(mut_data)
-    # sh_file = args_data['sh_file']
-    # args_file = args_data['args_file']
-    # done_path = os.path.join(os.path.dirname(sh_file), 'done')
-    # shutil.move(args_file, os.path.join(done_path, os.path.basename(args_file)))
-    # shutil.move(sh_file, os.path.join(done_path, os.path.basename(sh_file)))
-    # print("Done.")
-    print("Not executable.")
-
-
-else:
-    print('Importing functions.')
 
