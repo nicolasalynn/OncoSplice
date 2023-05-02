@@ -45,7 +45,7 @@ def generate_mut_variant(seq: str, indices: list, start_pos: int, end_pos: int, 
             start_pos):indices.index(end_pos)+1] == ref, f'Reference allele does not match position in SNP. {seq[indices.index(start_pos):indices.index(end_pos)+1]}, {start_pos}, {ref}'
 
         rel_start, rel_end = indices.index(start_pos), indices.index(end_pos) + 1
-        return seq[:rel_start] + mut + seq[rel_end:], indices[:rel_start] + [start_pos + i/1000 for i in list(range(1, len(mut)+1))] + indices[rel_end:], True, [start_pos], ''
+        return seq[:rel_start] + mut + seq[rel_end+1:], indices[:rel_start] + [start_pos + i/1000 for i in list(range(1, len(mut)+1))] + indices[rel_end:], True, [start_pos], ''
 
 
     elif var_type == 'DEL':
@@ -104,7 +104,7 @@ class Mutation:
             self.vartype = 'INDEL'
 
         if self.vartype == 'DEL' or self.vartype == 'INDEL':
-           self.end = self.start + len(self.ref) - 1
+           self.end = self.start + len(self.ref) #- 1
         else:
             self.end = self.start
 

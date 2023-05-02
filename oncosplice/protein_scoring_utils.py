@@ -37,17 +37,17 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         ref_introns = [(ref_exons[i][1], ref_exons[i + 1][0]) for i in range(len(ref_exons) - 1)]
         affected_exon, affected_intron, closest_donor, closest_acceptor = '-', '-', '-', '-'
         for ex_num, (ex1, ex2) in enumerate(ref_exons):
-            if (not ref_prot.rev and ex1 <= mutation.pos <= ex2) or (ref_prot.rev and ex1 >= mutation.pos >= ex2):
+            if (not ref_prot.rev and ex1 <= mutation.start <= ex2) or (ref_prot.rev and ex1 >= mutation.start >= ex2):
                 affected_exon = ex_num
-                closest_donor = abs(ex2 - mutation.pos)
-                closest_acceptor = abs(ex1 - mutation.pos)
+                closest_donor = abs(ex2 - mutation.start)
+                closest_acceptor = abs(ex1 - mutation.start)
                 break
 
         for int_num, (in1, in2) in enumerate(ref_introns):
-            if (not ref_prot.rev and in1 < mutation.pos < in2) or (ref_prot.rev and in1 > mutation.pos > in2):
+            if (not ref_prot.rev and in1 < mutation.start < in2) or (ref_prot.rev and in1 > mutation.start > in2):
                 affected_intron = int_num
-                closest_donor = abs(in1 - mutation.pos)
-                closest_acceptor = abs(in2 - mutation.pos)
+                closest_donor = abs(in1 - mutation.start)
+                closest_acceptor = abs(in2 - mutation.start)
                 break
 
         ### Record Data
