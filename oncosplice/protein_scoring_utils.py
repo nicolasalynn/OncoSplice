@@ -20,16 +20,20 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
             
         alignment, num_ins, num_del = get_logical_alignment(ref_prot.protein, var_prot.protein)
         deleted, inserted = get_insertions_and_deletions(alignment)
-        W = 76
+
+
+        #### ONCOSPLICE SCORING ################################################
+        W = 38                  # 76
         if W >= len(ref_prot.protein):
             W = len(ref_prot.protein)-1
 
-        smoothed_conservation_vector = smooth_cons_scores([2 ** -val for val in ref_prot.conservation_vector], W, W // 2)
+        smoothed_conservation_vector = smooth_cons_scores([2 ** -val for val in ref_prot.conservation_vector], W)
+        deconv_del = calculate_del_penalty(deleted, smoothed_conservation_vector, W)
+        deconv_ins = calculate_ins_penalty(inserted, smoothed_conservation_vector, W)
+        oncosplice_score = combine_ins_and_del_scores(deconv_del, deconv_ins, W)
+        deconv_ins, deconv_del = combine_ins_and_del_scores(deconv_ins, deconv_ins, W) / 2, combine_ins_and_del_scores(deconv_del, deconv_del, W) / 2
+        ################################################################################################################
 
-        deconv_del = calculate_del_penalty(deleted, smoothed_conservation_vector, W, W // 2)
-        deconv_ins = calculate_ins_penalty(inserted, smoothed_conservation_vector, W, W // 2)
-        oncosplice_score = combine_ins_and_del_scores(deconv_del, deconv_ins, W, W // 2)
-        deconv_ins, deconv_del = combine_ins_and_del_scores(deconv_ins, deconv_ins, W, W//2) / 2, combine_ins_and_del_scores(deconv_del, deconv_del, W, W//2) / 2
         pes, pir, es, ne, ir = define_missplicing_events(ref_prot.exon_boundaries(), var_prot.exon_boundaries(), ref_prot.rev)
         description = '|'.join([v for v in [pes, pir, es, ne, ir] if v])
 
@@ -68,23 +72,23 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['full_missplicing'] = str(missplicing)
         report['missed_acceptors'] = ', '.join([str(pos) for pos in missplicing.get('missed_acceptors', {}).keys() if pos in ref_prot.acceptors])
         report['missed_donors'] = ', '.join([str(pos) for pos in missplicing.get('missed_donors', {}).keys() if pos in ref_prot.donors])
-        report['discovered_acceptors'] = ', '.join([str(pos) for pos in missplicing.get('discovered_acceptors', {}).keys() if max(ref_prot.transcript_start, ref_prot.transcript_end) <= pos <= max(ref_prot.transcript_start, ref_prot.transcript_end)])
-        report['discovered_donors'] = ', '.join([str(pos) for pos in missplicing.get('discovered_donors', {}).keys() if max(ref_prot.transcript_start, ref_prot.transcript_end) <= pos <= max(ref_prot.transcript_start, ref_prot.transcript_end)])
+        report['discovered_acceptors'] = ', '.join([str(pos) for pos in missplicing.get('discovered_acceptors', {}).keys() if min(ref_prot.transcript_start, ref_prot.transcript_end) <= pos <= max(ref_prot.transcript_start, ref_prot.transcript_end)])
+        report['discovered_donors'] = ', '.join([str(pos) for pos in missplicing.get('discovered_donors', {}).keys() if min(ref_prot.transcript_start, ref_prot.transcript_end) <= pos <= max(ref_prot.transcript_start, ref_prot.transcript_end)])
         report['isoform_prevalence'] = var_prot.penetrance
         report['no_start_codon_found'] = no_start_codon
         report['missplicing_event'] = description
         report['missplicing_event_summary'] = summarize_missplicing_event(pes, pir, es, ne, ir)
         report['reference_protein_length'] = len(ref_prot.protein)
         report['variant_protein_length'] = len(var_prot.protein)
-        report['insertions'] = ','.join(list(inserted.values()))
         report['num_insertions'] = num_ins
         report['num_deletions'] = num_del
-        report['deletions'] = ','.join(list(deleted.values()))
+        report['insertions'] = str(inserted.values())
+        report['deletions'] = str(deleted.values())
         report['oncosplice_score'] = oncosplice_score
         report['deconv_ins'] = deconv_ins
         report['deconv_del'] = deconv_del
-        report['affected_exon'] = affected_exon
-        report['affected_intron'] = affected_intron
+        report['mut_exon_residence'] = affected_exon
+        report['mut_intron_residence'] = affected_intron
         report['mutation_distance_from_5'] = closest_acceptor
         report['mutation_distance_from_3'] = closest_donor
         report['conservation_vector_available'] = ref_prot.cons_available
@@ -208,7 +212,8 @@ def get_logical_alignment(r, v):
     return optimal_alignment, num_insertions, num_deletions
 
 
-def smooth_cons_scores(cons_scores, W, PADDING):
+def smooth_cons_scores(cons_scores, W):
+    PADDING = W // 2
     new_scores = []
     for i in range(len(cons_scores)):
         if i < PADDING:
@@ -230,7 +235,7 @@ def smooth_cons_scores(cons_scores, W, PADDING):
     return new_scores
 
 
-def calculate_del_penalty(deleted_domains, cons_scores, W, PADDING):
+def calculate_del_penalty(deleted_domains, cons_scores, W):
     penalty = np.zeros(cons_scores.size)
     for dp_pos, dp_seq in deleted_domains.items():
         dw = max(1.0, len(dp_seq) / W)
@@ -238,10 +243,10 @@ def calculate_del_penalty(deleted_domains, cons_scores, W, PADDING):
     return penalty
 
 
-def calculate_ins_penalty(inserted_domains, cons_scores, W, PADDING):
+def calculate_ins_penalty(inserted_domains, cons_scores, W):
     penalty = np.zeros(cons_scores.size)
     for ip_pos, ip_seq in inserted_domains.items():
-        reach = min(W, len(ip_seq))
+        # reach = min(W, len(ip_seq))
         iw = max(1.0, len(ip_seq) / W)
         # penalty[ip_pos] = iw*cons_scores[ip_pos]
         # for ipv in list(range(ip_pos-reach, ip_pos + reach+1)):
@@ -255,16 +260,14 @@ def calculate_ins_penalty(inserted_domains, cons_scores, W, PADDING):
     return penalty
 
 
-def combine_ins_and_del_scores(d_cons_scores, i_cons_scores, W, PADDING):
+def combine_ins_and_del_scores(d_cons_scores, i_cons_scores, W):
+    PADDING = W // 2
     combined_scores = [a + b for a, b in list(zip(d_cons_scores, i_cons_scores))]
     penalty = []
-    # for i in range(PADDING, len(d_cons_scores) - PADDING):
+
     for i in range(PADDING, len(combined_scores) - PADDING):
         penalty.append(sum(combined_scores[i - PADDING:i + PADDING + 1]))
 
-    # print(f"Penalty ({sum(penalty)}: {penalty}")
-    # median_p = np.median(penalty)
-    # penalty = [p - median_p for p in penalty]
     return max(penalty)
 
 
