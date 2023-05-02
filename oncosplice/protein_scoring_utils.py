@@ -48,6 +48,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['strand'] = '+' if not ref_prot.rev else '-'
         report['transcipt_id'] = ref_prot.transcript_id
         report['isoform_id'] = var_prot.transcript_id.split('-')[-1]
+        report['full_missplicing'] = str(missplicing)
         report['missed_acceptors'] = ', '.join([str(pos) for pos in missplicing.get('missed_acceptors', {}).keys() if pos in ref_prot.acceptors])
         report['missed_donors'] = ', '.join([str(pos) for pos in missplicing.get('missed_donors', {}).keys() if pos in ref_prot.donors])
         report['discovered_acceptors'] = ', '.join([str(pos) for pos in missplicing.get('discovered_acceptors', {}).keys() if max(ref_prot.transcript_start, ref_prot.transcript_end) <= pos <= max(ref_prot.transcript_start, ref_prot.transcript_end)])
@@ -176,7 +177,7 @@ def get_logical_alignment(r, v):
         one in which gaps are minimalized and correspond to those alternative splicing blocks.
     '''
 
-    alignments = pairwise2.align.globalms(r, v, 1, -3, -3, 0, penalize_end_gaps=(True, False))
+    alignments = pairwise2.align.globalms(r, v, 1, -1, -3, 0, penalize_end_gaps=(True, False))
 
     if len(alignments) == 1:
         optimal_alignment = alignments[0]
