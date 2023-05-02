@@ -1,6 +1,7 @@
 import shutil
 import os
 from geney import unload_json, parse_in_args, get_correct_gene_file
+import pandas as pd
 
 from oncosplice import oncosplice_setup
 from oncosplice.spliceai_utils import find_missplicing_spliceai_adaptor
@@ -13,6 +14,12 @@ def main(mut_id, sai_threshold=25):
         input = EpistaticSet(mut_id)
     else:
         input = Mutation(mut_id)
+
+    annot_file = get_correct_gene_file(input.gene, target_directory=oncosplice_setup['MRNA_PATH'])
+    if not annot_file:
+        print(f'No annotations for gene: {input.gene}...')
+        return {}, pd.DataFrame()
+
     print(f'>> Processing: {input}')
 
     ################### MISSPLICING
@@ -20,9 +27,7 @@ def main(mut_id, sai_threshold=25):
     print(f'\tMissplicing: {missplicing}')
     
     ################### VARIANT ANNOTATIONS
-    annot_file = get_correct_gene_file(input.gene, target_directory=oncosplice_setup['MRNA_PATH'])
-    if not annot_file:
-        return f"No data for gene {input.gene}."
+
 
     reference_gene = AnnotatedGene(annot_file)
     variant_gene = reference_gene.create_gene_isoform(mut_ids=mut_id, aberrant_splicing=missplicing)

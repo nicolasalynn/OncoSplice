@@ -1,7 +1,6 @@
 import numpy as np
 from Bio import pairwise2
 from Bio.pairwise2 import format_alignment
-
 import pandas as pd
 import re
 
@@ -64,8 +63,16 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['oncosplice_score'] = oncosplice_score
         report['deconv_ins'] = deconv_ins
         report['deconv_del'] = deconv_del
-        report['mutation_distance_from_5'] = min([abs(pos - mutation.start) for pos in ref_prot.acceptors + [ref_prot.transcript_start]])
-        report['mutation_distance_from_3'] = min([abs(pos - mutation.start) for pos in ref_prot.donors + [ref_prot.transcript_end]])
+        if ref_prot.rev:
+            report['mutation_distance_from_5'] = [pos - mutation.start for pos in ref_prot.acceptors if pos >= mutation.start]
+            report['mutation_distance_from_3'] = [mutation.start - pos for pos in ref_prot.donors if pos <= mutation.start]
+        else:
+            report['mutation_distance_from_5'] = [mutation.start - pos for pos in ref_prot.acceptors if pos <= mutation.start]
+            report['mutation_distance_from_3'] = [pos - mutation.start for pos in ref_prot.donors if pos >= mutation.start]
+
+        report['mutation_distance_from_5'] = report['mutation_distance_from_5'][0] if len(report['mutation_distance_from_5']) == 1 else '-'
+        report['mutation_distance_from_3'] = report['mutation_distance_from_3'][0] if len(report['mutation_distance_from_3']) == 1 else '-'
+
         report = pd.Series(report)
         full_report.append(report)
 
@@ -77,21 +84,22 @@ def define_missplicing_events(ref_exons, var_exons, rev):
 
     ref_introns = [(ref_exons[i][1], ref_exons[i+1][0]) for i in range(len(ref_exons) - 1)]
     var_introns = [(var_exons[i][1], var_exons[i+1][0]) for i in range(len(var_exons) - 1)]
-
+    num_ref_exons = len(ref_exons)
+    num_ref_introns = len(ref_introns)
     if not rev:
-        partial_exon_skipping = ','.join([f'Exon {exon_count+1} truncated: {(t1, t2)} --> {(s1, s2)}' for (s1, s2) in var_exons for exon_count, (t1, t2) in enumerate(ref_exons) if (s1 == t1 and s2 < t2) or (s1 > t1 and s2 == t2)])
-        partial_intron_retention = ','.join([f'Intron {intron_count + 1} partially retained: {(t1, t2)} --> {(s1, s2)}' for (s1, s2) in var_introns for intron_count, (t1, t2) in enumerate(ref_introns) if (s1 == t1 and s2 < t2) or (s1 > t1 and s2 == t2)])
+        partial_exon_skipping = ','.join([f'Exon {exon_count+1}/{num_ref_exons} truncated: {(t1, t2)} --> {(s1, s2)}' for (s1, s2) in var_exons for exon_count, (t1, t2) in enumerate(ref_exons) if (s1 == t1 and s2 < t2) or (s1 > t1 and s2 == t2)])
+        partial_intron_retention = ','.join([f'Intron {intron_count + 1}/{num_ref_introns} partially retained: {(t1, t2)} --> {(s1, s2)}' for (s1, s2) in var_introns for intron_count, (t1, t2) in enumerate(ref_introns) if (s1 == t1 and s2 < t2) or (s1 > t1 and s2 == t2)])
 
     else:
-        partial_exon_skipping = ','.join([f'Exon {exon_count+1} truncated: {(t1, t2)} --> {(s1, s2)}' for (s1, s2) in var_exons for exon_count, (t1, t2) in enumerate(ref_exons) if (s1 == t1 and s2 > t2) or (s1 < t1 and s2 == t2)])
-        partial_intron_retention = ','.join([f'Intron {intron_count + 1} partially retained: {(t1, t2)} --> {(s1, s2)}' for (s1, s2) in var_introns for intron_count, (t1, t2) in enumerate(ref_introns) if (s1 == t1 and s2 > t2) or (s1 < t1 and s2 == t2)])
+        partial_exon_skipping = ','.join([f'Exon {exon_count+1}/{num_ref_exons} truncated: {(t1, t2)} --> {(s1, s2)}' for (s1, s2) in var_exons for exon_count, (t1, t2) in enumerate(ref_exons) if (s1 == t1 and s2 > t2) or (s1 < t1 and s2 == t2)])
+        partial_intron_retention = ','.join([f'Intron {intron_count + 1}/{num_ref_introns} partially retained: {(t1, t2)} --> {(s1, s2)}' for (s1, s2) in var_introns for intron_count, (t1, t2) in enumerate(ref_introns) if (s1 == t1 and s2 > t2) or (s1 < t1 and s2 == t2)])
 
 
-    exon_skipping = ','.join([f'Exon {exon_count + 1} skipped: {(t1, t2)}' for exon_count, (t1, t2) in enumerate(ref_exons) if
+    exon_skipping = ','.join([f'Exon {exon_count + 1}/{num_ref_exons} skipped: {(t1, t2)}' for exon_count, (t1, t2) in enumerate(ref_exons) if
                      t1 not in [s1 for s1, s2 in var_exons] and t2 not in [s2 for s1, s2 in var_exons]])
     novel_exons = ','.join([f'Novel Exon: {(t1, t2)}' for (t1, t2) in var_exons if
                    t1 not in [s1 for s1, s2 in ref_exons] and t2 not in [s2 for s1, s2 in ref_exons]])
-    intron_retention = ','.join([f'Intron {intron_count + 1} retained: {(t1, t2)}' for intron_count, (t1, t2) in enumerate(ref_introns) if
+    intron_retention = ','.join([f'Intron {intron_count + 1}/{num_ref_introns} retained: {(t1, t2)}' for intron_count, (t1, t2) in enumerate(ref_introns) if
                        t1 not in [s1 for s1, s2 in var_introns] and t2 not in [s2 for s1, s2 in var_introns]])
 
     return partial_exon_skipping, partial_intron_retention, exon_skipping, novel_exons, intron_retention
@@ -166,10 +174,9 @@ def get_logical_alignment(r, v):
         one in which gaps are minimalized and correspond to those alternative splicing blocks.
     '''
 
-    alignments = pairwise2.align.globalms(r, v, 1, -1, -3, -0.5)
+    alignments = pairwise2.align.globalms(r, v, 1, -3, -3, 0, penalize_end_gaps=(True, False))
 
     if len(alignments) == 1:
-        seqa, seqb = re.sub('-+', '-', alignments[0].seqA), re.sub('-+', '-', alignments[0].seqB)
         return alignments[0]
 
     # This calculates the number of gaps in each alignment.
@@ -177,14 +184,7 @@ def get_logical_alignment(r, v):
                     alignments]
 
     # We return the alignment with the smallest number of gaps.
-    try:
-        out = alignments[block_counts.index(min(block_counts))]
-        # print(format_alignment(*out))
-        return out
-
-    except AttributeError:
-        print("Error get_logical_alignment")
-        print(block_counts, alignments, r, v)
+    return alignments[block_counts.index(min(block_counts))]
 
 
 def smooth_cons_scores(cons_scores, W, PADDING):
