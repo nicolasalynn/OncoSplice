@@ -24,7 +24,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         if W >= len(ref_prot.protein):
             W = len(ref_prot.protein)-1
 
-        smoothed_conservation_vector = smooth_cons_scores(ref_prot.conservation_vector, W, W // 2)
+        smoothed_conservation_vector = smooth_cons_scores([2 ** val for val in ref_prot.conservation_vector], W, W // 2)
 
         deconv_del = calculate_del_penalty(deleted, smoothed_conservation_vector, W, W // 2)
         deconv_ins = calculate_ins_penalty(inserted, smoothed_conservation_vector, W, W // 2)
@@ -87,6 +87,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['affected_intron'] = affected_intron
         report['mutation_distance_from_5'] = closest_acceptor
         report['mutation_distance_from_3'] = closest_donor
+        report['conservation_vector_available'] = ref_prot.cons_available
 
         report = pd.Series(report)
         full_report.append(report)

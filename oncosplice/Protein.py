@@ -54,12 +54,14 @@ class Protein(mature_mRNA):
             cons_data = unload_pickle(files[0])
             if cons_data['seq'] == self.protein:
                 self.cons_seq = cons_data['seq']
-                self.conservation_vector = [2 ** val for val in cons_data['scores']]
-                return None
+                self.conservation_vector = cons_data['scores']
+                self.cons_available = True
+                return self
 
         self.cons_seq = self.protein
         self.conservation_vector = [1] * len(self.cons_seq)
-
+        self.cons_available = False
+        return self
     def generate_protein(self, mutations=None, regenerate_mature_mrna=False, regenerate_pre_mrna=False, experimental=False):
         if regenerate_mature_mrna:
             self.generate_mature_mrna(mutations=mutations, regenerate_pre_mrna=regenerate_pre_mrna)
