@@ -33,6 +33,23 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         pes, pir, es, ne, ir = define_missplicing_events(ref_prot.exon_boundaries(), var_prot.exon_boundaries(), ref_prot.rev)
         description = '|'.join([v for v in [pes, pir, es, ne, ir] if v])
 
+        ref_exons = ref_prot.exon_boundaries()
+        ref_introns = [(ref_exons[i][1], ref_exons[i + 1][0]) for i in range(len(ref_exons) - 1)]
+        affected_exon, affected_intron, closest_donor, closest_acceptor = '-', '-', '-', '-'
+        for ex_num, (ex1, ex2) in enumerate(ref_exons):
+            if (not ref_prot.rev and ex1 <= mutation.pos <= ex2) or (ref_prot.rev and ex1 >= mutation.pos >= ex2):
+                affected_exon = ex_num
+                closest_donor = abs(ex2 - mutation.pos)
+                closest_acceptor = abs(ex1 - mutation.pos)
+                break
+
+        for int_num, (in1, in2) in enumerate(ref_introns):
+            if (not ref_prot.rev and in1 < mutation.pos < in2) or (ref_prot.rev and in1 > mutation.pos > in2):
+                affected_intron = int_num
+                closest_donor = abs(in1 - mutation.pos)
+                closest_acceptor = abs(in2 - mutation.pos)
+                break
+
         ### Record Data
 
         report = {}
@@ -66,15 +83,10 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['oncosplice_score'] = oncosplice_score
         report['deconv_ins'] = deconv_ins
         report['deconv_del'] = deconv_del
-        if ref_prot.rev:
-            report['mutation_distance_from_5'] = [pos - mutation.start for pos in ref_prot.acceptors if pos >= mutation.start]
-            report['mutation_distance_from_3'] = [mutation.start - pos for pos in ref_prot.donors if pos <= mutation.start]
-        else:
-            report['mutation_distance_from_5'] = [mutation.start - pos for pos in ref_prot.acceptors if pos <= mutation.start]
-            report['mutation_distance_from_3'] = [pos - mutation.start for pos in ref_prot.donors if pos >= mutation.start]
-
-        report['mutation_distance_from_5'] = min(report['mutation_distance_from_5']) if len(report['mutation_distance_from_5']) == 1 else '-'
-        report['mutation_distance_from_3'] = min(report['mutation_distance_from_3']) if len(report['mutation_distance_from_3']) == 1 else '-'
+        report['affected_exon'] = affected_exon
+        report['affected_intron'] = affected_intron
+        report['mutation_distance_from_5'] = closest_acceptor
+        report['mutation_distance_from_3'] = closest_donor
 
         report = pd.Series(report)
         full_report.append(report)
