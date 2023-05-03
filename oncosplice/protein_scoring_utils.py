@@ -40,7 +40,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
                 window_length -= 1
 
         modified_positions = find_unmodified_positions(len(ref_prot.protein), deleted, inserted, window_length)
-        new_cons_vec, lof_score, gof_score = new_oncosplice_scoring(modified_positions, ref_prot.conservation_vector, W=window_length)
+        new_cons_vec, lof_score, gof_score, oncoslice_score = new_oncosplice_scoring(modified_positions, ref_prot.conservation_vector, W=window_length)
 
 
         ################################################################################################################
@@ -91,9 +91,9 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['num_deletions'] = num_del
         report['insertions'] = str(inserted.values())
         report['deletions'] = str(deleted.values())
-        report['gof_score'] = np.log(abs(gof_score))
-        report['lof_score'] = np.log(abs(lof_score))
-        report['oncosplice_score'] = max(np.log(abs(lof_score)), np.log(abs(gof_score)))
+        report['gof_score'] = gof_score
+        report['lof_score'] = lof_score
+        report['oncosplice_score'] = oncoslice_score
         report['mut_exon_residence'] = affected_exon
         report['mut_intron_residence'] = affected_intron
         report['mutation_distance_from_5'] = closest_acceptor
@@ -331,5 +331,7 @@ def new_oncosplice_scoring(unmodified_positions, cons_vec, W):
     alignment_ratio = window_matching(unmodified_positions, len(cons_vec), W)
     functional_loss = mask_matched_positions(cons_vec.copy(), unmodified_positions)
     s = alignment_ratio * functional_loss / len(cons_vec)
-    return cons_vec, s.min(), s.max()
+    s = np.convolve(s, np.ones(W), 'same')
+    return cons_vec, s.min(), s.max(), sum(s)
+
 
