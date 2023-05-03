@@ -38,6 +38,8 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
             window_length = len(ref_prot.protein) // 2
             if window_length % 2 != 0:
                 window_length -= 1
+        if window_length == 0:
+            window_length = 1
 
         modified_positions = find_unmodified_positions(len(ref_prot.protein), deleted, inserted, window_length)
         new_cons_vec, lof_score, gof_score, oncoslice_score = new_oncosplice_scoring(modified_positions, ref_prot.conservation_vector, W=window_length)
@@ -102,6 +104,9 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
 
         report = pd.Series(report)
         full_report.append(report)
+
+    if not full_report:
+        return pd.DataFrame()
 
     full_report = pd.concat(full_report, axis=1).transpose()
     return full_report
@@ -314,6 +319,9 @@ def transform_conservation_vector(c, W):
     temp_W = W//4
     if temp_W % 2 != 0:
         temp_W -= 1
+    if temp_W == 0:
+        temp_W = 2
+
     convolver = np.ones(temp_W)
     convolving_length = np.array([min(len(c) + temp_W - i, temp_W, i) for i in range(temp_W // 2, len(c) + temp_W // 2)])
     c1 = np.convolve(c, convolver, mode='same') / convolving_length
