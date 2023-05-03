@@ -1,8 +1,8 @@
 
 class EpistaticSet:
     def __init__(self, epistatic_set):
-        self.epistatic_id = epistatic_set
-        self.variants = [Mutation(m) for m in self.epistatic_id.split('|')]
+        self.mut_id = epistatic_set
+        self.variants = [Mutation(m) for m in self.mut_id.split('|')]
         self.start = self.variants[0].start
         self.ref = ','.join([m.ref for m in self.variants])
         self.alt = ','.join([m.alt for m in self.variants])
