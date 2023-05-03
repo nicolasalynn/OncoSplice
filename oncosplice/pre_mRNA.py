@@ -66,12 +66,13 @@ class pre_mRNA:
     def to_positive_strand(self):
         if self.rev and self.pre_indices[0] > self.pre_indices[-1]:
             self.pre_mrna, self.pre_indices = reverse_complement(self.pre_mrna), self.pre_indices[::-1]
-
+        return self
     def to_true_strand(self):
         if self.rev and self.pre_indices[0] < self.pre_indices[-1]:
             self.pre_mrna, self.pre_indices = reverse_complement(self.pre_mrna), self.pre_indices[::-1]
+        return self
 
-    def generate_pre_mrna(self, mutations=None) -> None:
+    def generate_pre_mrna(self, mutations=None):
         # Generates the pre-mRNA sequence. chrm_path must point to a
         # chromosome fasta file with equal number of bps per row
         if self.__valid_pre_mrna():
@@ -84,6 +85,7 @@ class pre_mRNA:
                 self.apply_mutations(mutations)
 
             self.to_true_strand()
+        return self
 
     def apply_mutations(self, ms):
         if ms:
@@ -133,6 +135,8 @@ class pre_mRNA:
 
             self.pre_mrna, self.pre_indices = mrna_seq, mrna_indices
             # self.to_true_strand()
+        return self
 
     def is_mutated(self):
         return True if self.applied_mutations else False
+
