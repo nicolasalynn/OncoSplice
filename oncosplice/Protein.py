@@ -11,16 +11,19 @@ class Protein(mature_mRNA):
 
     def __init__(self, transcript_start: int, transcript_end: int, rev: bool, chrm: str, donors: list, acceptors: list,
                  gene_name='undefined', transcript_id='undefined', transcript_type='undefined',
-                 used_tis: int = None, used_tts: int = None, penetrance: float = 1.0):
+                 used_tis: int = None, used_tts: int = None, penetrance: float = 1.0, mutations=[]):
 
         mature_mRNA.__init__(self, transcript_start=transcript_start, transcript_end=transcript_end, rev=rev,
                              chrm=chrm, donors=donors, acceptors=acceptors, gene_name=gene_name,
-                             transcript_id=transcript_id, transcript_type=transcript_type, penetrance=penetrance)
+                             transcript_id=transcript_id, transcript_type=transcript_type, penetrance=penetrance,
+                             mutations=mutations)
+
         self.used_tis = used_tis
         self.used_tts = used_tts
         self.orf = ''
         self.protein = ''
         self.conservation_vector = []
+        self.__generate_protein()
         self.__access_conservation_data()
 
     def __repr__(self):
@@ -62,11 +65,8 @@ class Protein(mature_mRNA):
         self.conservation_vector = [1] * len(self.cons_seq)
         self.cons_available = False
         return self
-    def generate_protein(self, mutations=None, regenerate_mature_mrna=False, regenerate_pre_mrna=False, experimental=False):
-        if regenerate_mature_mrna:
-            self.generate_mature_mrna(mutations=mutations, regenerate_pre_mrna=regenerate_pre_mrna)
-
-        if experimental and self.used_tis not in self.mature_indices:
+    def __generate_protein(self):
+        if self.used_tis not in self.mature_indices:
             self.used_tis, _, _, _, _ = run_through_titer(mut_seq=self.mature_mrna,
                                                mut_coords=self.mature_indices,
                                                ref_sc_coord=self.used_tis,

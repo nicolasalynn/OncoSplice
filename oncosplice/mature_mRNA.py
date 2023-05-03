@@ -7,10 +7,10 @@ from oncosplice.SpliceSite import SpliceSite
 class mature_mRNA(pre_mRNA):
 
     def __init__(self, transcript_start: int, transcript_end: int, rev: bool, chrm: str, donors, acceptors,
-                 gene_name='undefined', transcript_id='undefined', transcript_type='undefined', penetrance=1):
+                 gene_name='undefined', transcript_id='undefined', transcript_type='undefined', penetrance=1, mutations=[]):
         pre_mRNA.__init__(self, transcript_start=transcript_start, transcript_end=transcript_end,
                           rev=rev, chrm=chrm, gene_name=gene_name, transcript_id=transcript_id,
-                          transcript_type=transcript_type)
+                          transcript_type=transcript_type, mutations=mutations)
 
         self.donors = donors
         self.acceptors = acceptors
@@ -20,6 +20,8 @@ class mature_mRNA(pre_mRNA):
 
         self.penetrance = penetrance
         self.mature_mrna, self.mature_indices = '', []
+
+        self.__generate_mature_mrna()
 
     def __len__(self):
         return len(self.mature_mrna)
@@ -48,10 +50,7 @@ class mature_mRNA(pre_mRNA):
                 3. the first donor is larger (or smaller) than the first acceptor depending on rev or not.
         """
 
-        check1 = len(self.donors) == len(self.acceptors)  # there must be an equal number of acceptors and donors
-
-        # print(f'Acceptors: {self.acceptors}')
-        # print(f'Donors: {self.donors}')
+        check1 = len(self.donors) == len(self.acceptors)
 
         if self.rev:
             check2 = all([self.acceptors[i - 1] > self.donors[i] > self.acceptors[i]
@@ -85,14 +84,8 @@ class mature_mRNA(pre_mRNA):
                 print(f"Acceptor/Donor overlap: {[v for v in self.donors if v in self.acceptors]}")
             return False
 
-    def generate_mature_mrna(self, mutations=None, regenerate_pre_mrna=False):
-        if not self.pre_mrna or regenerate_pre_mrna:
-            self.generate_pre_mrna(mutations=mutations)
-
+    def __generate_mature_mrna(self):
         if self.__valid_mature_mrna():
-            # Description: using the state's exon start and end indices along with the developed pre mRNA
-            # indices and sequence, will cut using the splicing blueprints
-            # Modifies the states mature mrna, indices, and exon description in place.
 
             mature_mrna, mature_indices = '', []
             for i, j in self.exon_boundaries():
@@ -118,7 +111,7 @@ class mature_mRNA(pre_mRNA):
         return list(zip(exon_starts, exon_ends))
 
 
-    def develop_aberrant_splicing(self, aberrant_splicing, rev):
+    def develop_aberrant_splicing(self, aberrant_splicing):
         upper_range, lower_range = max(self.transcript_start, self.transcript_end), min(self.transcript_start, self.transcript_end)
         exon_starts = {v: 1 for v in self.acceptors + [self.transcript_start]}
         exon_ends = {v: 1 for v in self.donors + [self.transcript_end]}
@@ -142,7 +135,7 @@ class mature_mRNA(pre_mRNA):
                 [SpliceSite(pos=pos, ss_type=1, prob=prob) for pos, prob in exon_starts.items() if
                  lower_range <= pos <= upper_range]
 
-        nodes.sort(key=lambda x: x.pos, reverse=rev)
+        nodes.sort(key=lambda x: x.pos, reverse=self.rev)
 
         while nodes[0].ss_type == 0:
             nodes = nodes[1:]
@@ -187,11 +180,10 @@ class mature_mRNA(pre_mRNA):
 
         new_paths, prob_sum = {}, 0
         for i, path in enumerate(nx.all_simple_paths(G, self.transcript_start, self.transcript_end)):
-            # print(f"New path: {path}")
             curr_prob = path_weight_mult(G, path, 'weight')
             prob_sum += curr_prob
-            new_paths[i] = {'acceptors': sorted([p for p in path if p in exon_starts.keys() and p != self.transcript_start], reverse=rev),
-                            'donors': sorted([p for p in path if p in exon_ends.keys() and p != self.transcript_end], reverse=rev),
+            new_paths[i] = {'acceptors': sorted([p for p in path if p in exon_starts.keys() and p != self.transcript_start], reverse=self.rev),
+                            'donors': sorted([p for p in path if p in exon_ends.keys() and p != self.transcript_end], reverse=self.rev),
                             'path_weight': curr_prob}
 
 

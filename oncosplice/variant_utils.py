@@ -26,15 +26,15 @@ class Mutation:
         self.ref = ref if ref != '-' else ''
         self.alt = alt if alt != '-' else ''
 
-        if self.ref != '-' and self.alt != '-' and (len(self.ref) > 1 or len(self.alt) > 1):
-            self.vartype = 'INDEL'
-        elif self.ref != '-' and self.alt != '-':
+        if len(self.ref) == len(self.alt) == 1:
             self.vartype = 'SNP'
-        elif self.ref == '-':
-            self.vartype = 'INS'
-        elif self.alt == '-':
+        elif len(self.ref) == len(self.alt) > 1:
+            self.vartype = 'SUB'
+        elif self.ref and not self.alt:
             self.vartype = 'DEL'
-        elif len(self.alt) > 1 and len(self.ref) > 1:
+        elif self.alt and not self.ref:
+            self.vartype = 'INS'
+        else:
             self.vartype = 'INDEL'
 
     def __str__(self):
