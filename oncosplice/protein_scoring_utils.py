@@ -41,8 +41,6 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
                 window_length = 8 * np.ceil(len(ref_prot.protein) / 4)
 
 
-
-
         modified_positions = find_unmodified_positions(len(ref_prot.protein), deleted, inserted, window_length)
         new_cons_vec, lof_score, gof_score, oncoslice_score = new_oncosplice_scoring(modified_positions, ref_prot.conservation_vector, W=window_length)
 
@@ -301,6 +299,7 @@ def find_unmodified_positions(lp, deletions, insertions, W):
 
 def window_matching(unmodified_positions, l_p, W):
     alignment_vector = [1 if i in unmodified_positions else 0 for i in range(l_p)]
+    print(len(alignment_vector))
     convolver = np.ones(W)
     convolving_length = np.array([min(l_p + W - i, W, i) for i in range(W // 2, l_p + W // 2)])
     match_ratios = np.convolve(alignment_vector, convolver, mode='same') / (convolving_length // 2) - 1
@@ -335,6 +334,7 @@ def transform_conservation_vector(c, W):
 
 def new_oncosplice_scoring(unmodified_positions, cons_vec, W):
     cons_vec, _ = transform_conservation_vector(cons_vec, W)
+    print('here')
     alignment_ratio = window_matching(unmodified_positions, len(cons_vec), W)
     functional_loss = mask_matched_positions(cons_vec.copy(), unmodified_positions)
     s = alignment_ratio * functional_loss / len(cons_vec)
