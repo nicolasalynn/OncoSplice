@@ -36,7 +36,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         window_length = 76
         if window_length >= len(ref_prot.protein):
             window_length = len(ref_prot.protein) // 3 - 3
-            if window_length % 4 != 0 and (window_length // 4) % 2 != 0:
+            if window_length % 4 != 0 or (window_length // 4) % 2 != 0 or window_length // 4 <= 0:
                 window_length += 1
 
 
@@ -316,6 +316,7 @@ def window_conv(cons_vec, W):
 
 def transform_conservation_vector(c, W):
     temp_W = W//4
+    print(f'temp window: {temp_W}')
     convolver = np.ones(temp_W)
     convolving_length = np.array([min(len(c) + temp_W - i, temp_W, i) for i in range(temp_W // 2, len(c) + temp_W // 2)])
     c1 = np.convolve(c, convolver, mode='same') / convolving_length
