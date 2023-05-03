@@ -46,7 +46,8 @@ class Mutation:
 
 def generate_mut_variant(seq: str, indices: list, mut: Mutation, suppress=False):
     offset = 1 if not mut.ref else 0
-    check_indices = list(range(mut.start, mut.start + len((mut.ref) + offset)))
+    check_indices = list(range(mut.start, mut.start + len(mut.ref) + offset))
+    
     if any([m not in indices for m in check_indices]):
         print(f"Mutation {mut} not in indices: {min(indices)} - {max(indices)}.")
         raise IndexError
