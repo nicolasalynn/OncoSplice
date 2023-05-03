@@ -94,7 +94,7 @@ class pre_mRNA:
             mrna_seq, mrna_indices = self.pre_mrna, self.pre_indices
             for m in ms:
                 expanded_mut = Mutation(m)
-                mrna_seq, mrna_indices, successfully_applied, affected_indices, var_inclusion_report = \
+                mrna_seq, mrna_indices, successfully_applied = \
                     generate_mut_variant(
                         mrna_seq,
                         mrna_indices,
@@ -125,11 +125,11 @@ class pre_mRNA:
                             self.generation_report += f'Mutation occurs {distance_after} ' \
                                                       f'nucleotides after the transcript end site.'
 
-                if self.transcript_start in affected_indices:
-                    self.generation_report += f'Mutation {m} affects the Transcription Start Site.\n'
+                # if self.transcript_start in affected_indices:
+                #     self.generation_report += f'Mutation {m} affects the Transcription Start Site.\n'
 
-                if self.transcript_end in affected_indices:
-                    self.generation_report += f'Mutation {m} affects the Transcription End Site.\n'
+                # if self.transcript_end in affected_indices:
+                #     self.generation_report += f'Mutation {m} affects the Transcription End Site.\n'
 
             self.pre_mrna, self.pre_indices = mrna_seq, mrna_indices
             # self.to_true_strand()
