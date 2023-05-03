@@ -23,15 +23,26 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
 
 
         #### ONCOSPLICE SCORING ################################################
-        W = 38                  # 76
-        if W >= len(ref_prot.protein):
-            W = len(ref_prot.protein)-1
+        # W = 38                  # 76
+        # if W >= len(ref_prot.protein):
+        #     W = len(ref_prot.protein)-1
+        #
+        # smoothed_conservation_vector = smooth_cons_scores([2 ** -val for val in ref_prot.conservation_vector], W)
+        # deconv_del = calculate_del_penalty(deleted, smoothed_conservation_vector, W)
+        # deconv_ins = calculate_ins_penalty(inserted, smoothed_conservation_vector, W)
+        # oncosplice_score = combine_ins_and_del_scores(deconv_del, deconv_ins, W)
+        # deconv_ins, deconv_del = combine_ins_and_del_scores(deconv_ins, deconv_ins, W) / 2, combine_ins_and_del_scores(deconv_del, deconv_del, W) / 2
 
-        smoothed_conservation_vector = smooth_cons_scores([2 ** -val for val in ref_prot.conservation_vector], W)
-        deconv_del = calculate_del_penalty(deleted, smoothed_conservation_vector, W)
-        deconv_ins = calculate_ins_penalty(inserted, smoothed_conservation_vector, W)
-        oncosplice_score = combine_ins_and_del_scores(deconv_del, deconv_ins, W)
-        deconv_ins, deconv_del = combine_ins_and_del_scores(deconv_ins, deconv_ins, W) / 2, combine_ins_and_del_scores(deconv_del, deconv_del, W) / 2
+        window_length = 76
+        if window_length >= len(ref_prot.protein):
+            window_length = len(ref_prot.protein) // 2
+            if window_length % 2 != 0:
+                window_length -= 1
+
+        modified_positions = find_unmodified_positions(alignment, deleted, inserted, len(ref_prot.protein))
+        new_cons_vec, lof_score, gof_score = new_oncosplice_scoring(modified_positions, ref_prot.convervation_vector, W=window_length)
+
+
         ################################################################################################################
 
         pes, pir, es, ne, ir = define_missplicing_events(ref_prot.exon_boundaries(), var_prot.exon_boundaries(), ref_prot.rev)
@@ -84,14 +95,14 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['num_deletions'] = num_del
         report['insertions'] = str(inserted.values())
         report['deletions'] = str(deleted.values())
-        report['oncosplice_score'] = oncosplice_score
-        report['deconv_ins'] = deconv_ins
-        report['deconv_del'] = deconv_del
+        report['oncosplice_score'] = max(abs(lof_score), abs(gof_score))
+        report['gof_score'] = gof_score
+        report['lof_score'] = lof_score
         report['mut_exon_residence'] = affected_exon
         report['mut_intron_residence'] = affected_intron
         report['mutation_distance_from_5'] = closest_acceptor
         report['mutation_distance_from_3'] = closest_donor
-        report['conservation_vector_available'] = ref_prot.cons_available
+        report['cons_vector'] = new_cons_vec
 
         report = pd.Series(report)
         full_report.append(report)
@@ -271,4 +282,55 @@ def combine_ins_and_del_scores(d_cons_scores, i_cons_scores, W):
     return max(penalty)
 
 
+def find_unmodified_positions(lp, deletions, insertions, W):
+    unmodified_positions = list(range(lp))
+    modified_pos = []
+    for pos, deletion in deletions.items():
+        modified_pos.extend(list(range(pos, pos + len(deletion))))
+
+    max_reach = W // 2
+    for pos, insertion in insertions.items():
+        reach = min(len(insertion) // 2, max_reach)
+        modified_pos.extend(list(range(pos - reach, pos + reach + 1)))
+
+    return [v for v in unmodified_positions if v not in list(set(modified_pos))]
+
+
+def window_matching(unmodified_positions, l_p, W):
+    alignment_vector = [1 if i in unmodified_positions else 0 for i in range(l_p)]
+    convolver = np.ones(W)
+    convolving_length = np.array([min(l_p + W - i, W, i) for i in range(W // 2, l_p + W // 2)])
+    match_ratios = np.convolve(alignment_vector, convolver, mode='same') / (convolving_length // 2) - 1
+    return match_ratios
+
+
+def mask_matched_positions(cons_vec, unmodified_positions):
+    masked_positions = [val for val in list(range(len(cons_vec))) if val in unmodified_positions]
+    cons_vec[masked_positions] = 0
+    return cons_vec
+
+
+def window_conv(cons_vec, W):
+    return np.convole(cons_vec, np.zeros(W), mode='same')
+
+
+def transform_conservation_vector(c, W):
+    convolver = np.ones(W)
+    convolving_length = np.array([min(len(c) + W - i, W, i) for i in range(W // 2, len(c) + W // 2)])
+    c1 = np.convolve(c, convolver, mode='same') / convolving_length
+    c2 = -c1 / max(abs(c1))
+    c3 = 100 ** c2
+    c_sum = sum(c3)
+    c_len = len(c3)
+    c4 = c3 * c_len / c_sum
+    W_max = max(np.convolve(c4, convolver, mode='same'))
+    return c4, W_max
+
+
+def new_oncosplice_scoring(unmodified_positions, cons_vec, W):
+    cons_vec, W_max = transform_conservation_vector(cons_vec, W)
+    alignment_ratio = window_matching(unmodified_positions, len(cons_vec), W)
+    functional_loss = mask_matched_positions(cons_vec.copy(), unmodified_positions)
+    s = alignment_ratio * functional_loss / len(cons_vec)
+    return cons_vec, s.min(), s.max()
 
