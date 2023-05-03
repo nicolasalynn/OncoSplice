@@ -29,7 +29,7 @@ def main(mut_id, sai_threshold=25):
     ################### VARIANT ANNOTATIONS
     reference_gene = AnnotatedGene(annot_file)
     variant_gene = reference_gene.create_gene_isoform(mut_ids=mut_id, aberrant_splicing=missplicing)
-    ref_proteome, var_proteome = reference_gene.develop_proteome(), variant_gene.develop_proteome(experimental=True)
+    ref_proteome, var_proteome = reference_gene.develop_proteome(), variant_gene.develop_proteome()
 
     ################### GENERATE VARIANT REPORT
     report = generate_report(ref_proteome, var_proteome, missplicing, input)
