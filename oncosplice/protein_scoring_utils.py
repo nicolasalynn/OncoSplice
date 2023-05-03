@@ -70,7 +70,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['gene'] = ref_prot.gene_name
         report['chrom'] = ref_prot.chrm
         report['mut_id'] = mutation.mut_id
-        report['pos'] = mutation.start if isinstance(mutation, Mutation) else ','.join([m.start for m in mutation.variants])
+        report['pos'] = mutation.start if isinstance(mutation, Mutation) else ','.join([str(m.start) for m in mutation.variants])
         report['ref'] = mutation.ref if isinstance(mutation, Mutation) else ','.join([m.ref for m in mutation.variants])
         report['alt'] = mutation.alt if isinstance(mutation, Mutation) else ','.join([m.alt for m in mutation.variants])
         report['strand'] = '+' if not ref_prot.rev else '-'
