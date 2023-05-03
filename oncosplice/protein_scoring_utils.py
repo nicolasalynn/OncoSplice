@@ -35,8 +35,8 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
 
         window_length = 76
         if window_length >= len(ref_prot.protein):
-            window_length = len(ref_prot.protein) // 2 - 3
-            if window_length % 4 != 0:
+            window_length = len(ref_prot.protein) // 3 - 3
+            if window_length % 4 != 0 and (window_length // 4) % 2 != 0:
                 window_length += 1
 
 
@@ -316,11 +316,6 @@ def window_conv(cons_vec, W):
 
 def transform_conservation_vector(c, W):
     temp_W = W//4
-    if temp_W % 2 != 0:
-        temp_W -= 1
-    if temp_W == 0:
-        temp_W = 2
-
     convolver = np.ones(temp_W)
     convolving_length = np.array([min(len(c) + temp_W - i, temp_W, i) for i in range(temp_W // 2, len(c) + temp_W // 2)])
     c1 = np.convolve(c, convolver, mode='same') / convolving_length
@@ -329,12 +324,13 @@ def transform_conservation_vector(c, W):
     c_sum = sum(c3)
     c_len = len(c3)
     c4 = c3 * c_len / c_sum
-    W_max = max(np.convolve(c4, np.ones(W), mode='same'))
-    return c4, W_max
+    assert len(c4) == len(c), f'Length of modified conservation not equal.'
+    # W_max = max(np.convolve(c4, np.ones(W), mode='same'))
+    return c4, 1 #, W_max
 
 
 def new_oncosplice_scoring(unmodified_positions, cons_vec, W):
-    cons_vec, W_max = transform_conservation_vector(cons_vec, W)
+    cons_vec, _ = transform_conservation_vector(cons_vec, W)
     alignment_ratio = window_matching(unmodified_positions, len(cons_vec), W)
     functional_loss = mask_matched_positions(cons_vec.copy(), unmodified_positions)
     s = alignment_ratio * functional_loss / len(cons_vec)
