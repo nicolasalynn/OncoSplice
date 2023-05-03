@@ -118,8 +118,7 @@ def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500
     del_pos = []
 
     for mut in mutations:
-        mut_seq, mut_indices, _, _, _ = generate_mut_variant(seq=mut_seq, indices=mut_indices, start_pos=mut.start, end_pos=mut.end,
-                                                      ref=mut.ref, mut=mut.alt, var_type=mut.vartype)
+        mut_seq, mut_indices, _, _, _ = generate_mut_variant(seq=mut_seq, indices=mut_indices, mut=mut)
         assert len(mut_seq) == len(mut_indices), f'seq no longer length of indices, {len(mut_seq)}, {len(mut_indices)}'
 
         if mut.vartype == 'DEL':
