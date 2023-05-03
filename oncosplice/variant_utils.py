@@ -45,13 +45,18 @@ class Mutation:
 
 
 def generate_mut_variant(seq: str, indices: list, mut: Mutation, suppress=False):
-
-    if (mut.vartype == 'SNP' and mut.start not in indices) or (mut.vartype == 'INS' and (mut.start not in indices or mut.start + 1 not in indices)) or (mut.vartype == 'DEL' and not any([v in indices for v in range(mut.start, mut.start + len(mut.ref))])):
-        real_indices = [v for v in indices if v > 0]
-        if suppress:
-            print(
-                f"Mutation ({mut}) not within context of sequence. ie, gene covers ({min(real_indices[0], real_indices[-1])}, {max(real_indices[0], real_indices[-1])})")
+    offset = 1 if not mut.ref else 0
+    check_indices = list(range(mut.start, mut.start + len((mut.ref) + offset)))
+    if any([m not in indices for m in check_indices]):
+        print(f"Mutation {mut} not in indices: {min(indices)} - {max(indices)}.")
+        raise IndexError
         return seq, indices
+    # if (mut.vartype == 'SNP' and mut.start not in indices) or (mut.vartype == 'INS' and (mut.start not in indices or mut.start + 1 not in indices)) or (mut.vartype == 'DEL' and not any([v in indices for v in range(mut.start, mut.start + len(mut.ref))])):
+    #     real_indices = [v for v in indices if v > 0]
+    #     if suppress:
+    #         print(
+    #             f"Mutation ({mut}) not within context of sequence. ie, gene covers ({min(real_indices[0], real_indices[-1])}, {max(real_indices[0], real_indices[-1])})")
+    #     return seq, indices
 
     # if mut.vartype in ['SNP', 'DNP', 'TNP', 'ONP', 'DEL', 'IN']:
     '''
@@ -62,7 +67,6 @@ def generate_mut_variant(seq: str, indices: list, mut: Mutation, suppress=False)
     assert seq[indices.index(
         mut.start)] == mut.ref, f'Reference allele does not match position in SNP. {seq[indices.index(mut.start)]}, {mut.start}, {mut.ref}'
 
-    offset = 1 if not mut.ref else 0
     new_seq = seq[:indices.index(mut.start) + offset] + mut.alt + seq[indices.index(mut.start) + len(mut.ref) + offset:]
 
     if len(mut.ref) == len(mut.alt) > 0:
