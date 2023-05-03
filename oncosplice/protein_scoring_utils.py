@@ -91,9 +91,9 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['num_deletions'] = num_del
         report['insertions'] = str(inserted.values())
         report['deletions'] = str(deleted.values())
-        report['oncosplice_score'] = max(abs(lof_score), abs(gof_score))
-        report['gof_score'] = gof_score
-        report['lof_score'] = lof_score
+        report['gof_score'] = np.log(abs(gof_score))
+        report['lof_score'] = np.log(abs(lof_score))
+        report['oncosplice_score'] = max(np.log(abs(lof_score)), np.log(abs(gof_score)))
         report['mut_exon_residence'] = affected_exon
         report['mut_intron_residence'] = affected_intron
         report['mutation_distance_from_5'] = closest_acceptor
