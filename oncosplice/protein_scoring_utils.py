@@ -312,6 +312,8 @@ def window_conv(cons_vec, W):
 
 def transform_conservation_vector(c, W):
     temp_W = W//4
+    if temp_W % 2 != 0:
+        temp_W -= 1
     convolver = np.ones(temp_W)
     convolving_length = np.array([min(len(c) + temp_W - i, temp_W, i) for i in range(temp_W // 2, len(c) + temp_W // 2)])
     c1 = np.convolve(c, convolver, mode='same') / convolving_length
