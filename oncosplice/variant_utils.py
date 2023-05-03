@@ -52,7 +52,9 @@ def generate_mut_variant(seq: str, indices: list, mut: Mutation):
     acquired_seq = seq[rel_start:rel_end]
 
     check1 = all([m in indices for m in check_indices])
-    assert check1, f"Mutation {mut} not in indices: {min(indices)} - {max(indices)}."
+    if not check1:
+        print(f"Mutation {mut} not in indices: {min(indices)} - {max(indices)}.")
+        return seq, indices, False
 
     check2 = acquired_seq == mut.ref
     assert check2, f'Reference allele does not match position in SNP. {acquired_seq}, {mut.ref}, {mut.start}'
@@ -66,7 +68,7 @@ def generate_mut_variant(seq: str, indices: list, mut: Mutation):
     new_seq = seq[:rel_start] + mut.alt + seq[rel_end:]
 
     assert len(new_seq) == len(new_indices), f'Error in variant modification: {mut}, {len(new_seq)}, {len(new_indices)}'
-    return new_seq, new_indices
+    return new_seq, new_indices, True
 
     # if (mut.vartype == 'SNP' and mut.start not in indices) or (mut.vartype == 'INS' and (mut.start not in indices or mut.start + 1 not in indices)) or (mut.vartype == 'DEL' and not any([v in indices for v in range(mut.start, mut.start + len(mut.ref))])):
     #     real_indices = [v for v in indices if v > 0]
