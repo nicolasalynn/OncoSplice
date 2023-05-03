@@ -98,11 +98,7 @@ class pre_mRNA:
                     generate_mut_variant(
                         mrna_seq,
                         mrna_indices,
-                        start_pos=expanded_mut.start,
-                        end_pos=expanded_mut.end,
-                        var_type=expanded_mut.vartype,
-                        ref=expanded_mut.ref,
-                        mut=expanded_mut.alt)
+                        mut=m)
 
                 if successfully_applied:
                     self.applied_mutations.append(m)
