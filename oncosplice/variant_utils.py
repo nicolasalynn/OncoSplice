@@ -47,7 +47,7 @@ class Mutation:
 def generate_mut_variant(seq: str, indices: list, mut: Mutation, suppress=False):
     offset = 1 if not mut.ref else 0
     check_indices = list(range(mut.start, mut.start + len(mut.ref) + offset))
-    
+
     if any([m not in indices for m in check_indices]):
         print(f"Mutation {mut} not in indices: {min(indices)} - {max(indices)}.")
         raise IndexError
@@ -64,12 +64,10 @@ def generate_mut_variant(seq: str, indices: list, mut: Mutation, suppress=False)
     In case of SNP, all characters from start_pos to end_pos are altered.
     Thus, both start_pos and end_pos in seq are altered.
     '''
-
-    assert seq[indices.index(
-        mut.start)] == mut.ref, f'Reference allele does not match position in SNP. {seq[indices.index(mut.start)]}, {mut.start}, {mut.ref}'
+    acquired_seq = seq[indices.index(mut.start)+offset:indices.index(mut.start)+offset+len(mut.ref)]
+    assert acquired_seq == mut.ref, f'Reference allele does not match position in SNP. {acquired_seq}, {mut.ref}, {mut.start}'
 
     new_seq = seq[:indices.index(mut.start) + offset] + mut.alt + seq[indices.index(mut.start) + len(mut.ref) + offset:]
-
     if len(mut.ref) == len(mut.alt) > 0:
         new_indices = list(range(mut.start, mut.start + len(mut.ref)))
     else:
