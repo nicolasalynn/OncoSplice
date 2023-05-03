@@ -40,7 +40,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
                 window_length -= 1
 
         modified_positions = find_unmodified_positions(len(ref_prot.protein), deleted, inserted, window_length)
-        new_cons_vec, lof_score, gof_score = new_oncosplice_scoring(modified_positions, ref_prot.convervation_vector, W=window_length)
+        new_cons_vec, lof_score, gof_score = new_oncosplice_scoring(modified_positions, ref_prot.conservation_vector, W=window_length)
 
 
         ################################################################################################################
