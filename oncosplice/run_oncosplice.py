@@ -22,18 +22,21 @@ def main(mut_id, sai_threshold=25):
 
     print(f'>> Processing: {input}')
 
-    ################### MISSPLICING
-    missplicing = find_missplicing_spliceai_adaptor(input=input, sai_threshold=round(sai_threshold/100, 3), force=False)
-    print(f'\tMissplicing: {missplicing}')
-    
-    ################### VARIANT ANNOTATIONS
-    reference_gene = AnnotatedGene(annot_file)
-    variant_gene = reference_gene.create_gene_isoform(mut_ids=mut_id, aberrant_splicing=missplicing)
-    ref_proteome, var_proteome = reference_gene.develop_proteome(), variant_gene.develop_proteome()
+    try:
+        ################### MISSPLICING
+        missplicing = find_missplicing_spliceai_adaptor(input=input, sai_threshold=round(sai_threshold/100, 3), force=False)
+        print(f'\tMissplicing: {missplicing}')
 
-    ################### GENERATE VARIANT REPORT
-    report = generate_report(ref_proteome, var_proteome, missplicing, input)
+        ################### VARIANT ANNOTATIONS
+        reference_gene = AnnotatedGene(annot_file)
+        variant_gene = reference_gene.create_gene_isoform(mut_ids=mut_id, aberrant_splicing=missplicing)
+        ref_proteome, var_proteome = reference_gene.develop_proteome(), variant_gene.develop_proteome()
 
-    return variant_gene.__dict__, report
+        ################### GENERATE VARIANT REPORT
+        report = generate_report(ref_proteome, var_proteome, missplicing, input)
+
+        return variant_gene.__dict__, report
+    except:
+        return None, pd.DataFrame()
 
 
