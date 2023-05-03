@@ -33,11 +33,14 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         # oncosplice_score = combine_ins_and_del_scores(deconv_del, deconv_ins, W)
         # deconv_ins, deconv_del = combine_ins_and_del_scores(deconv_ins, deconv_ins, W) / 2, combine_ins_and_del_scores(deconv_del, deconv_del, W) / 2
 
-        window_length = 76
-        if window_length >= len(ref_prot.protein):
-            window_length = len(ref_prot.protein) // 3 - 3
-            if window_length % 4 != 0 or (window_length // 4) % 2 != 0 or window_length // 4 <= 0:
-                window_length += 1
+        window_length = 80
+        if window_length >= len(ref_prot.protein) // 2:
+            if len(ref_prot.protein) <= 12:
+                window_length = 8
+            elif len(ref_prot.protein) >= 10:
+                window_length = 8 * np.ceil(len(ref_prot.protein) / 4)
+
+
 
 
         modified_positions = find_unmodified_positions(len(ref_prot.protein), deleted, inserted, window_length)
@@ -315,7 +318,7 @@ def window_conv(cons_vec, W):
 
 
 def transform_conservation_vector(c, W):
-    temp_W = W//4
+    temp_W = W // 4
     print(f'temp window: {temp_W}')
     convolver = np.ones(temp_W)
     convolving_length = np.array([min(len(c) + temp_W - i, temp_W, i) for i in range(temp_W // 2, len(c) + temp_W // 2)])
