@@ -13,6 +13,9 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
 
         ### Compare and Score Ref protein and Isoform protein
         ref_prot, var_prot = ref_proteome[ref_id], var_proteome[var_id]
+        if len(ref_prot.protein) < 20:
+            continue
+
         no_start_codon = False
         if not var_prot.protein:
             no_start_codon = True
@@ -33,13 +36,9 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         # oncosplice_score = combine_ins_and_del_scores(deconv_del, deconv_ins, W)
         # deconv_ins, deconv_del = combine_ins_and_del_scores(deconv_ins, deconv_ins, W) / 2, combine_ins_and_del_scores(deconv_del, deconv_del, W) / 2
 
-        window_length = 80
-        if window_length >= len(ref_prot.protein) // 2:
-            if len(ref_prot.protein) <= 12:
-                window_length = 8
-            elif len(ref_prot.protein) >= 10:
-                window_length = 8 * np.ceil(len(ref_prot.protein) / 4)
-
+        window_length = min(80, len(ref_prot) // 4)
+        while (window_length // 4) % 2 != 0:
+            window_length += 1
 
         modified_positions = find_unmodified_positions(len(ref_prot.protein), deleted, inserted, window_length)
         new_cons_vec, lof_score, gof_score, oncoslice_score = new_oncosplice_scoring(modified_positions, ref_prot.conservation_vector, W=window_length)
@@ -299,7 +298,6 @@ def find_unmodified_positions(lp, deletions, insertions, W):
 
 def window_matching(unmodified_positions, l_p, W):
     alignment_vector = [1 if i in unmodified_positions else 0 for i in range(l_p)]
-    print(len(alignment_vector))
     convolver = np.ones(W)
     convolving_length = np.array([min(l_p + W - i, W, i) for i in range(W // 2, l_p + W // 2)])
     match_ratios = np.convolve(alignment_vector, convolver, mode='same') / (convolving_length // 2) - 1
@@ -318,7 +316,6 @@ def window_conv(cons_vec, W):
 
 def transform_conservation_vector(c, W):
     temp_W = W // 4
-    print(f'temp window: {temp_W}')
     convolver = np.ones(temp_W)
     convolving_length = np.array([min(len(c) + temp_W - i, temp_W, i) for i in range(temp_W // 2, len(c) + temp_W // 2)])
     c1 = np.convolve(c, convolver, mode='same') / convolving_length
@@ -334,7 +331,6 @@ def transform_conservation_vector(c, W):
 
 def new_oncosplice_scoring(unmodified_positions, cons_vec, W):
     cons_vec, _ = transform_conservation_vector(cons_vec, W)
-    print('here')
     alignment_ratio = window_matching(unmodified_positions, len(cons_vec), W)
     functional_loss = mask_matched_positions(cons_vec.copy(), unmodified_positions)
     s = alignment_ratio * functional_loss / len(cons_vec)
