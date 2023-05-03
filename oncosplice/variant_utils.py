@@ -44,14 +44,30 @@ class Mutation:
         return self.mut_id
 
 
-def generate_mut_variant(seq: str, indices: list, mut: Mutation, suppress=False):
+def generate_mut_variant(seq: str, indices: list, mut: Mutation):
     offset = 1 if not mut.ref else 0
-    check_indices = list(range(mut.start, mut.start + len(mut.ref) + offset))
+    rel_start, rel_end = indices.index(mut.start)+offset, indices.index(mut.start)+offset+len(mut.ref)
 
-    if any([m not in indices for m in check_indices]):
-        print(f"Mutation {mut} not in indices: {min(indices)} - {max(indices)}.")
-        raise IndexError
-        return seq, indices
+    check_indices = list(range(mut.start, mut.start + len(mut.ref) + offset))
+    acquired_seq = seq[rel_start:rel_end]
+
+    check1 = all([m in indices for m in check_indices])
+    assert check1, f"Mutation {mut} not in indices: {min(indices)} - {max(indices)}."
+
+    check2 = acquired_seq == mut.ref
+    assert check2, f'Reference allele does not match position in SNP. {acquired_seq}, {mut.ref}, {mut.start}'
+
+    if len(mut.ref) == len(mut.alt) > 0:
+        new_indices = list(range(mut.start, mut.start + len(mut.ref)))
+    else:
+        new_indices = [indices[indices.index(mut.start)] + v / 1000 for v in list(range(1, len(mut.alt)+1))]
+
+    new_indices = indices[:rel_start] + new_indices + indices[rel_end:]
+    new_seq = seq[:rel_start] + mut.alt + seq[rel_end:]
+
+    assert len(new_seq) == len(new_indices), f'Error in variant modification: {mut}, {len(new_seq)}, {len(new_indices)}'
+    return new_seq, new_indices
+
     # if (mut.vartype == 'SNP' and mut.start not in indices) or (mut.vartype == 'INS' and (mut.start not in indices or mut.start + 1 not in indices)) or (mut.vartype == 'DEL' and not any([v in indices for v in range(mut.start, mut.start + len(mut.ref))])):
     #     real_indices = [v for v in indices if v > 0]
     #     if suppress:
@@ -60,25 +76,6 @@ def generate_mut_variant(seq: str, indices: list, mut: Mutation, suppress=False)
     #     return seq, indices
 
     # if mut.vartype in ['SNP', 'DNP', 'TNP', 'ONP', 'DEL', 'IN']:
-    '''
-    In case of SNP, all characters from start_pos to end_pos are altered.
-    Thus, both start_pos and end_pos in seq are altered.
-    '''
-    acquired_seq = seq[indices.index(mut.start)+offset:indices.index(mut.start)+offset+len(mut.ref)]
-    assert acquired_seq == mut.ref, f'Reference allele does not match position in SNP. {acquired_seq}, {mut.ref}, {mut.start}'
-
-    new_seq = seq[:indices.index(mut.start) + offset] + mut.alt + seq[indices.index(mut.start) + len(mut.ref) + offset:]
-    if len(mut.ref) == len(mut.alt) > 0:
-        new_indices = list(range(mut.start, mut.start + len(mut.ref)))
-    else:
-        new_indices = [indices[indices.index(mut.start)] + v / 1000 for v in list(range(len(1, mut.alt+1)))]
-
-    new_indices = indices[:indices.index(mut.start) + offset] + new_indices + indices[indices.index(mut.start) + len(mut.ref) + offset:]
-
-    assert len(new_seq) == len(new_indices), f'Error in variant modification: {mut}, {len(new_seq)}, {len(new_indices)}'
-    return new_seq, new_indices
-
-
     # elif mut.vartype == 'INS':
     #     '''
     #     In case of INS, the inserted mut is between start_pos and end_pos.
