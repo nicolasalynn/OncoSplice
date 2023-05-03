@@ -311,15 +311,16 @@ def window_conv(cons_vec, W):
 
 
 def transform_conservation_vector(c, W):
-    convolver = np.ones(W)
-    convolving_length = np.array([min(len(c) + W - i, W, i) for i in range(W // 2, len(c) + W // 2)])
+    temp_W = W//4
+    convolver = np.ones(temp_W)
+    convolving_length = np.array([min(len(c) + temp_W - i, temp_W, i) for i in range(temp_W // 2, len(c) + temp_W // 2)])
     c1 = np.convolve(c, convolver, mode='same') / convolving_length
     c2 = -c1 / max(abs(c1))
     c3 = 100 ** c2
     c_sum = sum(c3)
     c_len = len(c3)
     c4 = c3 * c_len / c_sum
-    W_max = max(np.convolve(c4, convolver, mode='same'))
+    W_max = max(np.convolve(c4, np.ones(W), mode='same'))
     return c4, W_max
 
 
