@@ -16,6 +16,7 @@ if sys.platform != 'darwin':
         'MRNA_PATH': Path('/tamir2/nicolaslynn/data/genbank/mrna_database/mRNAs/protein_coding'),
         'CONS_PATH': Path('/tamir1/nicolaslynn/data/Conservation/data'),
         'MISSPLICING_PATH': Path('/tamir2/nicolaslynn/experimental_data/variant_missplicing'),
+        'TRANEX_PATH': Path('/tamir2/nicolaslynn/data/HumanProteinAtlas/tranex_sum_tpm_database/')
     })
 
 

@@ -76,6 +76,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['alt'] = mutation.alt if isinstance(mutation, Mutation) else ','.join([m.alt for m in mutation.variants])
         report['strand'] = '+' if not ref_prot.rev else '-'
         report['transcipt_id'] = ref_prot.transcript_id
+        report['ensembl_transcript_id'] = ref_prot.transcript_id.split('.')[0]
         report['isoform_id'] = var_prot.transcript_id.split('-')[-1]
         report['full_missplicing'] = str(missplicing)
         report['missed_acceptors'] = ', '.join([str(pos) for pos in missplicing.get('missed_acceptors', {}).keys() if pos in ref_prot.acceptors])
@@ -105,9 +106,9 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         full_report.append(report)
 
     if not full_report:
-        return pd.DataFrame()
-
-    full_report = pd.concat(full_report, axis=1).transpose()
+        full_report = pd.DataFrame()
+    else:
+        full_report = pd.concat(full_report, axis=1).transpose()
     return full_report
 
 

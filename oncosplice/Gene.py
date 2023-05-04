@@ -1,10 +1,12 @@
 
 import copy
+import pandas as pd
 from geney import dump_json, unload_json
 
 from oncosplice.pre_mRNA import pre_mRNA
 from oncosplice.mature_mRNA import mature_mRNA
 from oncosplice.Protein import Protein
+from oncosplice import oncosplice_setup
 
 class EmptyGene:
     def __init__(self):
@@ -133,6 +135,16 @@ class AnnotatedGene(EmptyGene):
         self.tag = self.data.get('tag', 'undefined')
         self.transcripts = self.data.get('transcripts', {})
         self.transcripts = {k: v for k, v in self.transcripts.items() if 'donors' in v.keys() and 'acceptors' in v.keys() and 'TIS' in v.keys() and 'TTS' in v.keys()}
+        self.__load_tranex_data()
+
+    def __load_tranex_data(self):
+        target_gid = self.gene_id.split('.')[0]
+        target_file = [f for f in oncosplice_setup['TRANEX_PATH'] / f'tranex_{target_gid}.csv']
+        if target_file:
+            self.tranex_tpm = pd.read_csv(target_file[0])
+        else:
+            self.tranex_tpm = None
+
 
     def create_gene_isoform(self, mut_ids, aberrant_splicing=None):
 
