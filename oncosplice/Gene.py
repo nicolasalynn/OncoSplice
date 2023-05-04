@@ -1,6 +1,7 @@
 
 import copy
 import pandas as pd
+import numpy as np
 from geney import dump_json, unload_json
 
 from oncosplice.pre_mRNA import pre_mRNA
@@ -145,8 +146,10 @@ class AnnotatedGene(EmptyGene):
             self.tranex_tpm = pd.read_csv(target_file)
         else:
             print(f'target file {target_file} doesnt exist.')
-            self.tranex_tpm = None
-
+            transcripts = list(self.transcripts.keys())
+            vals = np.ones(len(transcripts))
+            self.tranex_tpm = pd.DataFrame(vals, index=transcripts, columns=['tmp_sum'])
+            self.tranex_tpm.index.name = 'ensembl_transcript_id'
 
     def create_gene_isoform(self, mut_ids, aberrant_splicing=None):
 
