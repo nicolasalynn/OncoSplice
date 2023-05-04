@@ -18,7 +18,8 @@ def main(mut_id, sai_threshold=25):
     annot_file = get_correct_gene_file(input.gene, target_directory=oncosplice_setup['MRNA_PATH'])
     if not annot_file:
         print(f'No annotations for gene: {input.gene}...')
-        return {}, pd.DataFrame()
+        return None
+
     print(f'>> Processing: {input}')
 
     try:
@@ -36,8 +37,9 @@ def main(mut_id, sai_threshold=25):
         if reference_gene.tranex_tpm:
             report = pd.merge(report, reference_gene.tranex_tpm, on=['ensembl_transcript_id'])
 
-        return variant_gene.__dict__, report
+        return report
+
     except:
-        return None, pd.DataFrame()
+        return None
 
 
