@@ -139,10 +139,12 @@ class AnnotatedGene(EmptyGene):
 
     def __load_tranex_data(self):
         target_gid = self.gene_id.split('.')[0]
-        target_file = [f for f in oncosplice_setup['TRANEX_PATH'] / f'tranex_{target_gid}.csv']
-        if target_file:
-            self.tranex_tpm = pd.read_csv(target_file[0])
+        target_file = oncosplice_setup['TRANEX_PATH'] / f'tranex_{target_gid}.csv'
+        if target_file.exists():
+            print(f'target file {target_file} exists.')
+            self.tranex_tpm = pd.read_csv(target_file)
         else:
+            print(f'target file {target_file} doesnt exist.')
             self.tranex_tpm = None
 
 
