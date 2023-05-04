@@ -34,9 +34,9 @@ def main(mut_id, sai_threshold=25):
 
     ################### GENERATE VARIANT REPORT
     report = generate_report(ref_proteome, var_proteome, missplicing, input)
-    if report.emtpy():
+    if report.emtpy:
         return report
-    
+
     report = pd.merge(report, reference_gene.tranex_tpm, on=['ensembl_transcript_id'])
     return report
     #
