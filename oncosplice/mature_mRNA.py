@@ -168,13 +168,13 @@ class mature_mRNA(pre_mRNA):
                             G.add_edge(curr_node.pos, next_node.pos)
                             G.edges[curr_node.pos, next_node.pos]['weight'] = new_prob
 
-                        else:
-                            if G.has_edge(next_node.pos, curr_node.pos):
-                                G.edges[next_node.pos, curr_node.pos]['weight'] = max(
-                                    G.edges[next_node.pos, curr_node.pos]['weight'], new_prob)
-                            else:
-                                G.add_edge(next_node.pos, curr_node.pos)
-                                G.edges[next_node.pos, curr_node.pos]['weight'] = new_prob
+                        # else:
+                        #     if G.has_edge(next_node.pos, curr_node.pos):
+                        #         G.edges[next_node.pos, curr_node.pos]['weight'] = max(
+                        #             G.edges[next_node.pos, curr_node.pos]['weight'], new_prob)
+                        #     else:
+                        #         G.add_edge(next_node.pos, curr_node.pos)
+                        #         G.edges[next_node.pos, curr_node.pos]['weight'] = new_prob
 
             nodes.reverse()
 
