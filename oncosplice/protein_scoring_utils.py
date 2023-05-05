@@ -3,6 +3,7 @@ from Bio import pairwise2
 from Bio.pairwise2 import format_alignment
 import pandas as pd
 import re
+import json
 
 from oncosplice.variant_utils import Mutation, EpistaticSet
 
@@ -78,11 +79,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['transcipt_id'] = ref_prot.transcript_id
         report['ensembl_transcript_id'] = ref_prot.transcript_id.split('.')[0]
         report['isoform_id'] = var_prot.transcript_id.split('-')[-1]
-        report['full_missplicing'] = missplicing
-        report['missed_acceptors'] = ', '.join([str(pos) for pos in missplicing.get('missed_acceptors', {}).keys() if pos in ref_prot.acceptors])
-        report['missed_donors'] = ', '.join([str(pos) for pos in missplicing.get('missed_donors', {}).keys() if pos in ref_prot.donors])
-        report['discovered_acceptors'] = ', '.join([str(pos) for pos in missplicing.get('discovered_acceptors', {}).keys() if min(ref_prot.transcript_start, ref_prot.transcript_end) <= pos <= max(ref_prot.transcript_start, ref_prot.transcript_end)])
-        report['discovered_donors'] = ', '.join([str(pos) for pos in missplicing.get('discovered_donors', {}).keys() if min(ref_prot.transcript_start, ref_prot.transcript_end) <= pos <= max(ref_prot.transcript_start, ref_prot.transcript_end)])
+        report['full_missplicing'] = json.dumps(missplicing)
         report['isoform_prevalence'] = var_prot.penetrance
         report['no_start_codon_found'] = no_start_codon
         report['missplicing_event'] = description
@@ -91,8 +88,8 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['variant_protein_length'] = len(var_prot.protein)
         report['num_insertions'] = num_ins
         report['num_deletions'] = num_del
-        report['insertions'] = str(inserted.values())
-        report['deletions'] = str(deleted.values())
+        report['insertions'] = json.dumps(inserted)
+        report['deletions'] = json.dumps(deleted)
         report['gof_score'] = gof_score
         report['lof_score'] = lof_score
         report['oncosplice_score'] = oncoslice_score
