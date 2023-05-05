@@ -167,7 +167,7 @@ class mature_mRNA(pre_mRNA):
                         if n == 1:
                             G.add_edge(curr_node.pos, next_node.pos)
                             G.edges[curr_node.pos, next_node.pos]['weight'] = new_prob
-
+                        print('here')
                         # else:
                         #     if G.has_edge(next_node.pos, curr_node.pos):
                         #         G.edges[next_node.pos, curr_node.pos]['weight'] = max(
