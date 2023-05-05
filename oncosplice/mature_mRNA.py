@@ -155,9 +155,9 @@ class mature_mRNA(pre_mRNA):
 
                     if curr_node.ss_type != next_node.ss_type:
                         if spread:
-                            new_prob = next_node.prob - trailing_prob if n == 1 else curr_node.prob - trailing_prob
+                            new_prob = next_node.prob - trailing_prob #if n == 1 else curr_node.prob - trailing_prob
                         else:
-                            new_prob = next_node.prob if n == 1 else curr_node.prob
+                            new_prob = next_node.prob #if n == 1 else curr_node.prob
 
                         trailing_prob += next_node.prob
 
@@ -167,14 +167,14 @@ class mature_mRNA(pre_mRNA):
                         if n == 1:
                             G.add_edge(curr_node.pos, next_node.pos)
                             G.edges[curr_node.pos, next_node.pos]['weight'] = new_prob
-                        print('here')
-                        # else:
-                        #     if G.has_edge(next_node.pos, curr_node.pos):
-                        #         G.edges[next_node.pos, curr_node.pos]['weight'] = max(
-                        #             G.edges[next_node.pos, curr_node.pos]['weight'], new_prob)
-                        #     else:
-                        #         G.add_edge(next_node.pos, curr_node.pos)
-                        #         G.edges[next_node.pos, curr_node.pos]['weight'] = new_prob
+                        else:
+                            if G.has_edge(next_node.pos, curr_node.pos):
+                                G.edges[next_node.pos, curr_node.pos]['weight'] = max(
+                                    G.edges[next_node.pos, curr_node.pos]['weight'], new_prob)
+                            # if not G.has_edge(next_node.pos, curr_node.pos):
+                            else:
+                                G.add_edge(next_node.pos, curr_node.pos)
+                                G.edges[next_node.pos, curr_node.pos]['weight'] = new_prob
 
             nodes.reverse()
 
