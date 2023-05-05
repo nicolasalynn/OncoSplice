@@ -78,7 +78,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['transcipt_id'] = ref_prot.transcript_id
         report['ensembl_transcript_id'] = ref_prot.transcript_id.split('.')[0]
         report['isoform_id'] = var_prot.transcript_id.split('-')[-1]
-        report['full_missplicing'] = str(missplicing)
+        report['full_missplicing'] = missplicing
         report['missed_acceptors'] = ', '.join([str(pos) for pos in missplicing.get('missed_acceptors', {}).keys() if pos in ref_prot.acceptors])
         report['missed_donors'] = ', '.join([str(pos) for pos in missplicing.get('missed_donors', {}).keys() if pos in ref_prot.donors])
         report['discovered_acceptors'] = ', '.join([str(pos) for pos in missplicing.get('discovered_acceptors', {}).keys() if min(ref_prot.transcript_start, ref_prot.transcript_end) <= pos <= max(ref_prot.transcript_start, ref_prot.transcript_end)])
