@@ -2,6 +2,7 @@ import shutil
 import os
 from geney import unload_json, parse_in_args, get_correct_gene_file
 import pandas as pd
+import numpy as np
 
 from oncosplice import oncosplice_setup
 from oncosplice.spliceai_utils import find_missplicing_spliceai_adaptor
@@ -43,4 +44,20 @@ def main(mut_id, sai_threshold=25):
     except:
         return pd.DataFrame()
 
+
+def calculate_final_score(df):
+    if df.empty():
+        return df
+
+    tracker = []
+    for mut_id, g in df.groupby('mut_id'):
+        g.tpm_sum = g.tpm_sum / g.tpm_sum.max()
+        lof, gof = g.lof_score * g.tpm_sum * g.isoform_prevalence, g.gof_score * g.tpm_sum * g.isoform_prevalence
+        min_score, max_score = lof.min(), gof.max()
+        tracker.append(np.array([mut_id, min_score, max_score]))
+
+    return pd.DataFrame(tracker, columns=['mut_id', 'lof_score', 'gof_score'])
+
+def short_results(mut_id, sai_threshold=25):
+    return calculate_final_score(main(mut_id, sai_threshold=sai_threshold))
 
