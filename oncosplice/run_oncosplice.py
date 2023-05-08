@@ -51,9 +51,9 @@ def calculate_final_score(file):
     try:
         df = pd.read_csv(file)
     except EmptyDataError:
-        return pd.Series()
+        return pd.Series(dtype='float64')
     if df.empty:
-        return pd.Series()
+        return pd.Series(dtype='float64')
 
     tracker = {}
 
