@@ -3,6 +3,7 @@ import os
 from geney import unload_json, parse_in_args, get_correct_gene_file
 import pandas as pd
 import numpy as np
+from pandas.errors import EmptyDataError
 
 from oncosplice import oncosplice_setup
 from oncosplice.spliceai_utils import find_missplicing_spliceai_adaptor
@@ -44,20 +45,45 @@ def main(mut_id, sai_threshold=25):
     except:
         return pd.DataFrame()
 
+def converter(instr, s):
+    return np.fromstring(instr[1:-1], count=s, sep=' ')
+def calculate_final_score(file):
+    try:
+        df = pd.read_csv(file)
+    except EmptyDataError:
+        return pd.Series()
+    if df.empty:
+        return pd.Series()
 
-def calculate_final_score(df):
-    if df.empty():
-        return df
+    tracker = {}
 
-    tracker = []
-    for mut_id, g in df.groupby('mut_id'):
-        g.tpm_sum = g.tpm_sum / g.tpm_sum.max()
-        lof, gof = g.lof_score * g.tpm_sum * g.isoform_prevalence, g.gof_score * g.tpm_sum * g.isoform_prevalence
-        min_score, max_score = lof.min(), gof.max()
-        tracker.append(np.array([mut_id, min_score, max_score]))
+    if 'tpm_sum' not in df.columns:
+        df['tpm_sum'] = df.apply(lambda row: 1, axis=1)
 
-    return pd.DataFrame(tracker, columns=['mut_id', 'lof_score', 'gof_score'])
+    unique_tmps = sum(df['tpm_sum'].unique())
+    df['tpm_weight'] = df['tpm_sum'] / unique_tmps
+    tracker['mut_id'] = df.iloc[0].mut_id
+
+    tracker['oncosplice_sum'] = df.oncosplice_score.sum()
+
+    temp = df.oncosplice_score * df.isoform_prevalence
+    tracker['oncosplice_isoform_sum'] = sum(temp)
+
+    temp = df.oncosplice_score * df.isoform_prevalence * df.tpm_weight * 100
+    tracker['oncosplice_isoform_tpm_sum'] = sum(temp)
+
+    temp = df.gof_score * df.isoform_prevalence * df.tpm_weight * 100
+    tracker['gof_score'] = sum(temp)
+
+    temp = df.lof_score * df.isoform_prevalence * df.tpm_weight * 100
+    tracker['lof_score'] = sum(temp)
+
+    temp = pd.Series(np.array(list(tracker.values())), index=list(tracker.keys()))
+    temp.name = temp.mut_id
+    temp.index.name = 'mut_id'
+    return temp
 
 def short_results(mut_id, sai_threshold=25):
     return calculate_final_score(main(mut_id, sai_threshold=sai_threshold))
+
 
