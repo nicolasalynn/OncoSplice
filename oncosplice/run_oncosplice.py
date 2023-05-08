@@ -68,15 +68,20 @@ def calculate_final_score(file):
 
     temp = df.oncosplice_score * df.isoform_prevalence
     tracker['oncosplice_isoform_sum'] = sum(temp)
+    temp = df.gof_score * df.isoform_prevalence
+    tracker['gof_isoform_sum'] = sum(temp)
+    temp = df.lof_score * df.isoform_prevalence
+    tracker['lof_isoform_sum'] = sum(temp)
 
     temp = df.oncosplice_score * df.isoform_prevalence * df.tpm_weight * 100
     tracker['oncosplice_isoform_tpm_sum'] = sum(temp)
-
     temp = df.gof_score * df.isoform_prevalence * df.tpm_weight * 100
-    tracker['gof_score'] = sum(temp)
-
+    tracker['gof_isoform_tpm_sum'] = sum(temp)
     temp = df.lof_score * df.isoform_prevalence * df.tpm_weight * 100
-    tracker['lof_score'] = sum(temp)
+    tracker['lof_isoform_tpm_sum'] = sum(temp)
+
+    # for tid, g in df.groupby('transcript_id'):
+    #     g.isoform_prevalence * g.gof_score
 
     temp = pd.Series(np.array(list(tracker.values())), index=list(tracker.keys()))
     temp.name = temp.mut_id
