@@ -1,17 +1,20 @@
 import shutil
 import os
-from geney import unload_json, parse_in_args, get_correct_gene_file
 import pandas as pd
 import numpy as np
-from pandas.errors import EmptyDataError
 
-from oncosplice import oncosplice_setup
-from oncosplice.spliceai_utils import find_missplicing_spliceai_adaptor
-from oncosplice.Gene import AnnotatedGene
-from oncosplice.variant_utils import EpistaticSet, Mutation
-from oncosplice.protein_scoring_utils import generate_report
+
 
 def main(mut_id, sai_threshold=25):
+    from geney import unload_json, parse_in_args, get_correct_gene_file
+
+    from oncosplice import oncosplice_setup
+    from oncosplice.spliceai_utils import find_missplicing_spliceai_adaptor
+    from oncosplice.Gene import AnnotatedGene
+    from oncosplice.variant_utils import EpistaticSet, Mutation
+    from oncosplice.protein_scoring_utils import generate_report
+
+
     if '|' in mut_id:
         input = EpistaticSet(mut_id)
     else:
@@ -48,6 +51,9 @@ def main(mut_id, sai_threshold=25):
 def converter(instr, s):
     return np.fromstring(instr[1:-1], count=s, sep=' ')
 def calculate_final_score(file):
+    from pandas.errors import EmptyDataError
+    import json
+
     try:
         df = pd.read_csv(file)
     except EmptyDataError:
@@ -56,32 +62,24 @@ def calculate_final_score(file):
         return pd.Series(dtype='float64')
 
     tracker = {}
-
-    if 'tpm_sum' not in df.columns:
-        df['tpm_sum'] = df.apply(lambda row: 1, axis=1)
-
-    unique_tmps = sum(df['tpm_sum'].unique())
-    df['tpm_weight'] = df['tpm_sum'] / unique_tmps
     tracker['mut_id'] = df.iloc[0].mut_id
+    missplicing = json.loads(df.iloc[0].full_missplicing)
+    tracker['interesting'] = any([missplicing.get('missed_donors', {}), missplicing.get('missed_acceptors', {}), missplicing.get('discovered_donors', {}), missplicing.get('discovered_acceptors', {})])
 
-    tracker['oncosplice_sum'] = df.oncosplice_score.sum()
+    lof_score_min = 0
+    gof_score_max = 0
+    for tid, g in df.groupby('transcript_id'):
+        g = g[g.isoform_prevalence == max(g.isoform_prevalence)]
+        lof_score = g.lof_score.mean()
+        gof_score = g.gof_score.mean()
+        if lof_score < lof_score_min:
+            lof_score_min = lof_score
+        if gof_score > gof_score_max:
+            gof_score_max = gof_score
 
-    temp = df.oncosplice_score * df.isoform_prevalence
-    tracker['oncosplice_isoform_sum'] = sum(temp)
-    temp = df.gof_score * df.isoform_prevalence
-    tracker['gof_isoform_sum'] = sum(temp)
-    temp = df.lof_score * df.isoform_prevalence
-    tracker['lof_isoform_sum'] = sum(temp)
-
-    temp = df.oncosplice_score * df.isoform_prevalence * df.tpm_weight * 100
-    tracker['oncosplice_isoform_tpm_sum'] = sum(temp)
-    temp = df.gof_score * df.isoform_prevalence * df.tpm_weight * 100
-    tracker['gof_isoform_tpm_sum'] = sum(temp)
-    temp = df.lof_score * df.isoform_prevalence * df.tpm_weight * 100
-    tracker['lof_isoform_tpm_sum'] = sum(temp)
-
-    # for tid, g in df.groupby('transcript_id'):
-    #     g.isoform_prevalence * g.gof_score
+    tracker['gof_score'] = gof_score_max
+    tracker['lof_score'] = lof_score_min
+    tracker['oncosplice_score'] = sum(df.oncosplice_score * df.isoform_prevalence)
 
     temp = pd.Series(np.array(list(tracker.values())), index=list(tracker.keys()))
     temp.name = temp.mut_id
@@ -92,3 +90,7 @@ def short_results(mut_id, sai_threshold=25):
     return calculate_final_score(main(mut_id, sai_threshold=sai_threshold))
 
 
+    # temp = df.gof_score * df.isoform_prevalence
+    # tracker['gof_isoform_sum'] = sum(temp)
+    # temp = df.lof_score * df.isoform_prevalence
+    # tracker['lof_isoform_sum'] = sum(temp)

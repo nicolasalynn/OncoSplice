@@ -67,7 +67,6 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
                 closest_acceptor = abs(in2 - mutation.start)
                 break
 
-
         report = {}
         report['gene'] = ref_prot.gene_name
         report['chrom'] = ref_prot.chrm
@@ -80,6 +79,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['ensembl_transcript_id'] = ref_prot.transcript_id.split('.')[0]
         report['isoform_id'] = var_prot.transcript_id.split('-')[-1]
         report['full_missplicing'] = json.dumps(missplicing)
+        report['missplicing_flag'] = any([missplicing.get('missed_acceptors', {}), missplicing.get('missed_donors', {}), missplicing.get('discovered_donors', {}), missplicing.get('discovered_acceptors', {})])
         report['isoform_prevalence'] = var_prot.penetrance
         report['no_start_codon_found'] = no_start_codon
         report['missplicing_event'] = description
@@ -97,7 +97,8 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['mut_intron_residence'] = affected_intron
         report['mutation_distance_from_5'] = closest_acceptor
         report['mutation_distance_from_3'] = closest_donor
-        report['cons_vector'] = new_cons_vec
+        report['cons_vector'] = np.array2string(np.around(new_cons_vec), 3)
+        report['cons_available'] = ref_prot.cons_available
 
         report = pd.Series(report)
         full_report.append(report)
@@ -221,64 +222,64 @@ def get_logical_alignment(r, v):
     return optimal_alignment, num_insertions, num_deletions
 
 
-def smooth_cons_scores(cons_scores, W):
-    PADDING = W // 2
-    new_scores = []
-    for i in range(len(cons_scores)):
-        if i < PADDING:
-            temp_vec = cons_scores[:i + PADDING + 1]
-        elif i > len(cons_scores) - PADDING:
-            temp_vec = cons_scores[i - PADDING:]
-        else:
-            temp_vec = cons_scores[i - PADDING:i + PADDING + 1]
-        len_temp_vec = len(temp_vec)
-        new_scores.append(sum(temp_vec) / len_temp_vec)
-    new_scores = np.array(new_scores) / max(new_scores)
-    assert len(new_scores) == len(
-        cons_scores), f'Smoothed scores are not same length... {len(cons_scores)}, {len(new_scores)}'
-    # assert round(sum(new_scores), 10) == 1, f'New score sum != to 1: {sum(new_scores)}'
-    # fig = tpl.figure()
-    # x = np.arange(0, len(new_scores))
-    # fig.plot(x, new_scores, width=60, height=20)
-    # fig.show()
-    return new_scores
-
-
-def calculate_del_penalty(deleted_domains, cons_scores, W):
-    penalty = np.zeros(cons_scores.size)
-    for dp_pos, dp_seq in deleted_domains.items():
-        dw = max(1.0, len(dp_seq) / W)
-        penalty[dp_pos:dp_pos + len(dp_seq) + 1] = cons_scores[dp_pos:dp_pos + len(dp_seq) + 1] * dw
-    return penalty
-
-
-def calculate_ins_penalty(inserted_domains, cons_scores, W):
-    penalty = np.zeros(cons_scores.size)
-    for ip_pos, ip_seq in inserted_domains.items():
-        # reach = min(W, len(ip_seq))
-        iw = max(1.0, len(ip_seq) / W)
-        # penalty[ip_pos] = iw*cons_scores[ip_pos]
-        # for ipv in list(range(ip_pos-reach, ip_pos + reach+1)):
-        for ipv in [ip_pos, ip_pos + 1]:
-            if ipv > len(cons_scores) - 1:
-                pass
-            elif ipv < 0:
-                pass
-            else:
-                penalty[ipv] = iw * cons_scores[ipv] + penalty[ipv]
-    return penalty
-
-
-def combine_ins_and_del_scores(d_cons_scores, i_cons_scores, W):
-    PADDING = W // 2
-    combined_scores = [a + b for a, b in list(zip(d_cons_scores, i_cons_scores))]
-    penalty = []
-
-    for i in range(PADDING, len(combined_scores) - PADDING):
-        penalty.append(sum(combined_scores[i - PADDING:i + PADDING + 1]))
-
-    return max(penalty)
-
+# def smooth_cons_scores(cons_scores, W):
+#     PADDING = W // 2
+#     new_scores = []
+#     for i in range(len(cons_scores)):
+#         if i < PADDING:
+#             temp_vec = cons_scores[:i + PADDING + 1]
+#         elif i > len(cons_scores) - PADDING:
+#             temp_vec = cons_scores[i - PADDING:]
+#         else:
+#             temp_vec = cons_scores[i - PADDING:i + PADDING + 1]
+#         len_temp_vec = len(temp_vec)
+#         new_scores.append(sum(temp_vec) / len_temp_vec)
+#     new_scores = np.array(new_scores) / max(new_scores)
+#     assert len(new_scores) == len(
+#         cons_scores), f'Smoothed scores are not same length... {len(cons_scores)}, {len(new_scores)}'
+#     # assert round(sum(new_scores), 10) == 1, f'New score sum != to 1: {sum(new_scores)}'
+#     # fig = tpl.figure()
+#     # x = np.arange(0, len(new_scores))
+#     # fig.plot(x, new_scores, width=60, height=20)
+#     # fig.show()
+#     return new_scores
+#
+#
+# def calculate_del_penalty(deleted_domains, cons_scores, W):
+#     penalty = np.zeros(cons_scores.size)
+#     for dp_pos, dp_seq in deleted_domains.items():
+#         dw = max(1.0, len(dp_seq) / W)
+#         penalty[dp_pos:dp_pos + len(dp_seq) + 1] = cons_scores[dp_pos:dp_pos + len(dp_seq) + 1] * dw
+#     return penalty
+#
+#
+# def calculate_ins_penalty(inserted_domains, cons_scores, W):
+#     penalty = np.zeros(cons_scores.size)
+#     for ip_pos, ip_seq in inserted_domains.items():
+#         # reach = min(W, len(ip_seq))
+#         iw = max(1.0, len(ip_seq) / W)
+#         # penalty[ip_pos] = iw*cons_scores[ip_pos]
+#         # for ipv in list(range(ip_pos-reach, ip_pos + reach+1)):
+#         for ipv in [ip_pos, ip_pos + 1]:
+#             if ipv > len(cons_scores) - 1:
+#                 pass
+#             elif ipv < 0:
+#                 pass
+#             else:
+#                 penalty[ipv] = iw * cons_scores[ipv] + penalty[ipv]
+#     return penalty
+#
+#
+# def combine_ins_and_del_scores(d_cons_scores, i_cons_scores, W):
+#     PADDING = W // 2
+#     combined_scores = [a + b for a, b in list(zip(d_cons_scores, i_cons_scores))]
+#     penalty = []
+#
+#     for i in range(PADDING, len(combined_scores) - PADDING):
+#         penalty.append(sum(combined_scores[i - PADDING:i + PADDING + 1]))
+#
+#     return max(penalty)
+#
 
 def find_unmodified_positions(lp, deletions, insertions, W):
     unmodified_positions = list(range(lp))
@@ -293,7 +294,6 @@ def find_unmodified_positions(lp, deletions, insertions, W):
 
     return [v for v in unmodified_positions if v not in list(set(modified_pos))]
 
-
 def window_matching(unmodified_positions, l_p, W):
     alignment_vector = [1 if i in unmodified_positions else 0 for i in range(l_p)]
     convolver = np.ones(W)
@@ -301,16 +301,13 @@ def window_matching(unmodified_positions, l_p, W):
     match_ratios = np.convolve(alignment_vector, convolver, mode='same') / (convolving_length // 2) - 1
     return match_ratios
 
-
 def mask_matched_positions(cons_vec, unmodified_positions):
     masked_positions = [val for val in list(range(len(cons_vec))) if val in unmodified_positions]
     cons_vec[masked_positions] = 0
     return cons_vec
 
-
 def window_conv(cons_vec, W):
     return np.convole(cons_vec, np.zeros(W), mode='same')
-
 
 def transform_conservation_vector(c, W):
     temp_W = W // 4
@@ -325,7 +322,6 @@ def transform_conservation_vector(c, W):
     assert len(c4) == len(c), f'Length of modified conservation not equal.'
     # W_max = max(np.convolve(c4, np.ones(W), mode='same'))
     return c4, 1 #, W_max
-
 
 def new_oncosplice_scoring(unmodified_positions, cons_vec, W):
     cons_vec, _ = transform_conservation_vector(cons_vec, W)
