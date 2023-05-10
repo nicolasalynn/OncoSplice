@@ -30,22 +30,22 @@ def main(mut_id, sai_threshold=0.25, force=False):
     missplicing = find_missplicing_spliceai_adaptor(input=input, sai_threshold=sai_threshold, force=force)
     print(f'\tMissplicing: {missplicing}')
 
-    try:
-        ################### VARIANT ANNOTATIONS
-        reference_gene = AnnotatedGene(annot_file)          # the next step is to have spliceai not have to repopen annotation data and rather to use the sequence build in the reference seq object... also we can check if a mutation is implemented before running splice ai.
-        variant_gene = reference_gene.create_gene_isoform(mut_ids=mut_id, aberrant_splicing=missplicing)
-        ref_proteome, var_proteome = reference_gene.develop_proteome(), variant_gene.develop_proteome()
+    # try:
+    ################### VARIANT ANNOTATIONS
+    reference_gene = AnnotatedGene(annot_file)          # the next step is to have spliceai not have to repopen annotation data and rather to use the sequence build in the reference seq object... also we can check if a mutation is implemented before running splice ai.
+    variant_gene = reference_gene.create_gene_isoform(mut_ids=mut_id, aberrant_splicing=missplicing)
+    ref_proteome, var_proteome = reference_gene.develop_proteome(), variant_gene.develop_proteome()
 
-        ################### GENERATE VARIANT REPORT
-        report = generate_report(ref_proteome, var_proteome, missplicing, input)
-        if report.empty:
-            return report
-
-        report = pd.merge(report, reference_gene.tranex_tpm, on=['ensembl_transcript_id'])
+    ################### GENERATE VARIANT REPORT
+    report = generate_report(ref_proteome, var_proteome, missplicing, input)
+    if report.empty:
         return report
 
-    except:
-        return pd.DataFrame()
+    report = pd.merge(report, reference_gene.tranex_tpm, on=['ensembl_transcript_id'])
+    return report
+
+    # except:
+    #     return pd.DataFrame()
 
 def converter(instr, s):
     return np.fromstring(instr[1:-1], count=s, sep=' ')
