@@ -29,8 +29,9 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         deleted, inserted = get_insertions_and_deletions(alignment)
 
         window_length = min(76, len(ref_prot.protein))
-        scores = calculate_oncosplice_scores(deleted, inserted, np.array(ref_prot.conservation_vector), window_length)
-        legacy_scores = calculate_legacy_oncosplice_score(deleted, inserted, np.array(ref_prot.conservation_vector),
+        cons_vector = np.array(ref_prot.conservation_vector, dtype=float)
+        scores = calculate_oncosplice_scores(deleted, inserted, cons_vector, window_length)
+        legacy_scores = calculate_legacy_oncosplice_score(deleted, inserted, cons_vector,
                                                           window_length)
 
         pes, pir, es, ne, ir = define_missplicing_events(ref_prot.exon_boundaries(), var_prot.exon_boundaries(),
