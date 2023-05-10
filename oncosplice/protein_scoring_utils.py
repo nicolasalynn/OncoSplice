@@ -28,20 +28,10 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         alignment, num_ins, num_del = get_logical_alignment(ref_prot.protein, var_prot.protein)
         deleted, inserted = get_insertions_and_deletions(alignment)
 
-        window_length = min(80, len(ref_prot) // 4)
-        while (window_length // 4) % 2 != 0:
-            window_length += 1
-
-        #### LEGACY ONCOSPLICE  ########################################################################################
-        ################################################################################################################
-        legacy_scores = calculate_legacy_oncosplice_score(deleted, inserted, ref_prot.conservation_vector,
+        window_length = min(76, len(ref_prot.protein))
+        scores = calculate_oncosplice_scores(deleted, inserted, np.array(ref_prot.conservation_vector), window_length)
+        legacy_scores = calculate_legacy_oncosplice_score(deleted, inserted, np.array(ref_prot.conservation_vector),
                                                           window_length)
-        ################################################################################################################
-        ################################################################################################################
-
-        scores = calculate_oncosplice_scores(deleted, inserted, ref_prot.conservation_vector, window_length)
-        ################################################################################################################
-        ################################################################################################################
 
         pes, pir, es, ne, ir = define_missplicing_events(ref_prot.exon_boundaries(), var_prot.exon_boundaries(),
                                                          ref_prot.rev)
