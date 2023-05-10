@@ -60,11 +60,7 @@ def calculate_final_score(file='', df=None):
             return pd.Series(dtype='float64')
         if df.empty:
             return pd.Series(dtype='float64')
-
-    elif df == None:
-        print(f'Must define a file or a dataframe.')
-        return pd.Series(dtype='float64')
-
+        
     tracker = {}
     tracker['mut_id'] = df.iloc[0].mut_id
     missplicing = json.loads(df.iloc[0].full_missplicing)
