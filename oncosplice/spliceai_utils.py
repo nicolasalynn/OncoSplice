@@ -168,20 +168,17 @@ def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500
 
 def find_missplicing_spliceai_adaptor(input, sai_mrg_context=5000, min_coverage=2500, sai_threshold=0.5, force=False):
     if isinstance(input, EpistaticSet):
-        splicingdb_path = oncosplice_setup['MISSPLICING_PATH'] / f'spliceai_{int(sai_threshold*100)}_colab'
+        splicingdb_path = oncosplice_setup['MISSPLICING_PATH'] / f'spliceai_epistatic'
         mutations = input.variants
     elif isinstance(input, Mutation):
-        splicingdb_path = oncosplice_setup['MISSPLICING_PATH']  / f'spliceai_{int(sai_threshold * 100)}_individual'
+        splicingdb_path = oncosplice_setup['MISSPLICING_PATH'] / f'spliceai_individual'
         mutations = [input]
     else:
         print('Error...')
-        return None
+        return {}
 
     gene_name = input.gene
     splicing_res_path = splicingdb_path / gene_name
-
-    if not splicing_res_path.exists() and oncosplice_setup['HOME']:
-        splicing_res_path.mkdir(parents=False)
 
     missplicing_path = splicing_res_path / f"missplicing_{input.file_identifier}.json"
     if oncosplice_setup['HOME'] and missplicing_path.exists() and not force:
@@ -189,9 +186,17 @@ def find_missplicing_spliceai_adaptor(input, sai_mrg_context=5000, min_coverage=
         missplicing = {outk: {float(k): v for k, v in outv.items()} for outk, outv in missplicing.items()}
         missplicing = {outk: {int(k) if k.is_integer() or 'missed' in outk else k: v for k, v in outv.items()} for outk, outv in
                        missplicing.items()}
+        return apply_sai_threshold(missplicing, sai_threshold)
 
-        return missplicing
+    missplicing = find_missplicing_spliceai(mutations, sai_mrg_context=sai_mrg_context, min_coverage=min_coverage, sai_threshold=0.1)
+    if oncosplice_setup['HOME']:
+        if not splicing_res_path.exists():
+            splicing_res_path.mkdir(parents=False)
+        dump_json(missplicing_path, missplicing)
+    return apply_sai_threshold(missplicing, sai_threshold)
 
-    missplicing = find_missplicing_spliceai(mutations, sai_mrg_context=sai_mrg_context, min_coverage=min_coverage, sai_threshold=sai_threshold)
-    dump_json(missplicing_path, missplicing)
-    return missplicing
+def apply_sai_threshold(splicing_dict, threshold):
+    new_dict = {}
+    for event, details in splicing_dict.items():
+        new_dict[event] = {k: v for k, v in details.items() if v['delta'] >= threshold}
+    return new_dict

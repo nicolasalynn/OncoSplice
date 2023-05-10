@@ -5,9 +5,8 @@ import numpy as np
 
 
 
-def main(mut_id, sai_threshold=25):
+def main(mut_id, sai_threshold=0.25):
     from geney import unload_json, parse_in_args, get_correct_gene_file
-
     from oncosplice import oncosplice_setup
     from oncosplice.spliceai_utils import find_missplicing_spliceai_adaptor
     from oncosplice.Gene import AnnotatedGene
@@ -29,7 +28,7 @@ def main(mut_id, sai_threshold=25):
 
     try:
         ################### MISSPLICING
-        missplicing = find_missplicing_spliceai_adaptor(input=input, sai_threshold=round(sai_threshold/100, 3), force=False)
+        missplicing = find_missplicing_spliceai_adaptor(input=input, sai_threshold=sai_threshold, force=True)
         print(f'\tMissplicing: {missplicing}')
 
         ################### VARIANT ANNOTATIONS
@@ -86,11 +85,6 @@ def calculate_final_score(file):
     temp.index.name = 'mut_id'
     return temp
 
-def short_results(mut_id, sai_threshold=25):
+def short_results(mut_id, sai_threshold=0.25):
     return calculate_final_score(main(mut_id, sai_threshold=sai_threshold))
 
-
-    # temp = df.gof_score * df.isoform_prevalence
-    # tracker['gof_isoform_sum'] = sum(temp)
-    # temp = df.lof_score * df.isoform_prevalence
-    # tracker['lof_isoform_sum'] = sum(temp)
