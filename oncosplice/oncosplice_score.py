@@ -13,7 +13,7 @@ def sum_conv(vector, W):
 def transform_conservation_vector(c, W=5):
     c[c<0] /= abs(min(c))                           # normalizings
     c[c>0] /= max(c)
-    c = 10.0 ** sum_conv(c, W)                      # smoothed and inverted evolutionary rate values; exponential polarizes values
+    c = 10.0 ** np.negative(sum_conv(c, W))                      # smoothed and inverted evolutionary rate values; exponential polarizes values
     return c * len(c) / sum(c)                      # normalize so sum of conservation values is equal to the length of the protein, this can also be done with some arbitrary value such as 1000
 
 def find_unmodified_positions(lp, deletions, insertions, W):
