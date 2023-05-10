@@ -49,7 +49,7 @@ def main(mut_id, sai_threshold=0.25, force=False):
 
 def converter(instr, s):
     return np.fromstring(instr[1:-1], count=s, sep=' ')
-def calculate_final_score(file=None, df=None):
+def calculate_final_score(file='', df=None):
     from pandas.errors import EmptyDataError
     import json
 
@@ -60,9 +60,8 @@ def calculate_final_score(file=None, df=None):
             return pd.Series(dtype='float64')
         if df.empty:
             return pd.Series(dtype='float64')
-    elif df:
-        pass
-    else:
+
+    elif df == None:
         print(f'Must define a file or a dataframe.')
         return pd.Series(dtype='float64')
 
@@ -87,7 +86,7 @@ def calculate_final_score(file=None, df=None):
     tracker['oncosplice_score'] = np.mean(df.oncosplice_score * df.isoform_prevalence)
 
     tracker['legacy_oncosplice_score'] = df.groupby('transcript_id').mean().max()
-    
+
     temp = pd.Series(np.array(list(tracker.values())), index=list(tracker.keys()))
     temp.name = temp.mut_id
     temp.index.name = 'mut_id'
