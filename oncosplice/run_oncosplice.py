@@ -41,7 +41,7 @@ def main(mut_id, sai_threshold=0.25, force=False):
     if report.empty:
         return report
 
-    report = pd.merge(report, reference_gene.tranex_tpm, on=['ensembl_transcript_id'])
+    report = pd.merge(report, reference_gene.tranex_tpm, on=['ensembl_transcript_id'], how='outer')
     return report
 
     # except:
@@ -49,15 +49,21 @@ def main(mut_id, sai_threshold=0.25, force=False):
 
 def converter(instr, s):
     return np.fromstring(instr[1:-1], count=s, sep=' ')
-def calculate_final_score(file):
+def calculate_final_score(file=None, df=None):
     from pandas.errors import EmptyDataError
     import json
 
-    try:
-        df = pd.read_csv(file)
-    except EmptyDataError:
-        return pd.Series(dtype='float64')
-    if df.empty:
+    if file:
+        try:
+            df = pd.read_csv(file)
+        except EmptyDataError:
+            return pd.Series(dtype='float64')
+        if df.empty:
+            return pd.Series(dtype='float64')
+    elif df:
+        pass
+    else:
+        print(f'Must define a file or a dataframe.')
         return pd.Series(dtype='float64')
 
     tracker = {}
