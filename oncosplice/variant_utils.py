@@ -54,13 +54,16 @@ def generate_mut_variant(seq: str, indices: list, mut: Mutation):
     check1 = all([m in indices for m in check_indices])
     if not check1:
         print(f"Mutation {mut} not within transcript bounds: {min(indices)} - {max(indices)}.")
-        return seq, indices, False
+        return seq, indices, False, False
 
     rel_start, rel_end = indices.index(mut.start)+offset, indices.index(mut.start)+offset+len(mut.ref)
     acquired_seq = seq[rel_start:rel_end]
     check2 = acquired_seq == mut.ref
-    assert check2, f'Reference allele does not match position in SNP. {acquired_seq}, {mut.ref}, {mut.start}'
-
+    if not check2:
+        print(f'Reference allele does not match genome_build allele. {acquired_seq}, {mut.ref}, {mut.start}')
+        consensus_allele = False
+    else:
+        consensus_allele = True
     if len(mut.ref) == len(mut.alt) > 0:
         temp_indices = list(range(mut.start, mut.start + len(mut.ref)))
     else:
@@ -70,4 +73,4 @@ def generate_mut_variant(seq: str, indices: list, mut: Mutation):
     new_seq = seq[:rel_start] + mut.alt + seq[rel_end:]
 
     assert len(new_seq) == len(new_indices), f'Error in variant modification: {mut}, {len(new_seq)}, {len(new_indices)}'
-    return new_seq, new_indices, True
+    return new_seq, new_indices, True, consensus_allele

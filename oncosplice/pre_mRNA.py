@@ -22,6 +22,7 @@ class pre_mRNA:
         # Features of greater classes
         self.pre_mrna, self.pre_indices = '', []
         self.applied_mutations = []
+        self.consensus_allele_match = True
         self.strand_state_rev = False
         self.__generate_pre_mrna()
         if mutations:
@@ -90,7 +91,7 @@ class pre_mRNA:
         mrna_seq, mrna_indices = self.pre_mrna, self.pre_indices
         for mutation in ms:
             mutation = Mutation(mutation)
-            mrna_seq, mrna_indices, successfully_applied = \
+            mrna_seq, mrna_indices, successfully_applied, consensus_allele = \
                 generate_mut_variant(
                     mrna_seq,
                     mrna_indices,
@@ -100,6 +101,7 @@ class pre_mRNA:
                 self.applied_mutations.append(mutation.mut_id)
 
         self.pre_mrna, self.pre_indices = mrna_seq, mrna_indices
+        self.consensus_allele_match = consensus_allele
         self.__to_true_strand()
         return self
 

@@ -36,7 +36,6 @@ def calculate_oncosplice_scores(deletions, insertions, cons_vec, W):
     return {'cons_vec': np.array2string(np.around(cons_vec), 3), 'lof_score': min(0, s.min()), 'gof_score': max(0, s.max()), 'oncosplice_score': sum(s)}
 
 
-
 ##### LEGACY ONCOSPLICE CALCS
 def legacy_smooth_cons_scores(cons_scores, W):
     cons_scores = 2 ** np.negative(cons_scores)

@@ -85,6 +85,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['mut_intron_residence'] = affected_intron
         report['mutation_distance_from_5'] = closest_acceptor
         report['mutation_distance_from_3'] = closest_donor
+        report['consensus_allele_match'] = var_prot.consensus_allele_match
         report['cons_available'] = ref_prot.cons_available
         report.update(legacy_scores)
         report.update(scores)
