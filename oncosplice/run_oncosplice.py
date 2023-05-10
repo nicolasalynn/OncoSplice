@@ -84,9 +84,9 @@ def calculate_final_score(file='', df=None):
     tracker['lof_score'] = lof_score_min
     tracker['oncosplice_score'] = np.mean(df.oncosplice_score * df.isoform_prevalence)
 
-    tracker['legacy_oncosplice_score'] = df.groupby('transcript_id').mean().max()
+    tracker['legacy_oncosplice_score'] = df.groupby('transcript_id').legacy_oncosplice_score.mean().max()
 
-    temp = pd.Series(np.array(list(tracker.values())), index=list(tracker.keys()))
+    temp = pd.Series(np.array([np.array(v) for v in list(tracker.values())]), index=list(tracker.keys()))
     temp.name = temp.mut_id
     temp.index.name = 'mut_id'
     return temp
