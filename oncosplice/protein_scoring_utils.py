@@ -8,7 +8,6 @@ import json
 from oncosplice.variant_utils import Mutation, EpistaticSet
 from oncosplice.oncosplice_score import calculate_oncosplice_scores, calculate_legacy_oncosplice_score
 
-
 def generate_report(ref_proteome, var_proteome, missplicing, mutation):
     full_report = []
 
