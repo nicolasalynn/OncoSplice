@@ -49,7 +49,6 @@ class mature_mRNA(pre_mRNA):
                 2. the donors and acceptors are sorted in a staggering manner
                 3. the first donor is larger (or smaller) than the first acceptor depending on rev or not.
         """
-
         check1 = len(self.donors) == len(self.acceptors)
 
         if self.rev:
