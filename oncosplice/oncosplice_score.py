@@ -4,6 +4,9 @@ def moving_average_conv(vector, W):
     convolving_length = np.array([min(len(vector) + W - i, W, i) for i in range(W // 2, len(vector) + W // 2)], dtype=float)
     return sum_conv(vector, W) / convolving_length
 
+def moving_average_conv_modified(vector, W):
+    convolving_length = np.array([min(len(vector) + W - i, W, i) for i in range(W // 2, len(vector) + W // 2)], dtype=float)
+    return sum_conv(vector, W) / convolving_length // 2
 def sum_conv(vector, W):
     return np.convolve(vector, np.ones(W), mode='same')
 
@@ -27,10 +30,10 @@ def find_unmodified_positions(lp, deletions, insertions, W):
 def calculate_oncosplice_scores(deletions, insertions, cons_vec, W, W_sensitivity=5):
     cons_vec = transform_conservation_vector(cons_vec, W_sensitivity)
     unmodified_positions = find_unmodified_positions(len(cons_vec), deletions=deletions, insertions=insertions, W=W)
-    alignment_ratio_vector = moving_average_conv(unmodified_positions, W) - 1
+    alignment_ratio_vector = moving_average_conv_modified(unmodified_positions, W) - 1
     functional_loss_vector = cons_vec * (1 - unmodified_positions)
+    print(unmodified_positions)
     print(alignment_ratio_vector)
-    print(functional_loss_vector)
     s = alignment_ratio_vector * functional_loss_vector #/ len(cons_vec)
     s = sum_conv(s, W)
     return {'cons_vec': np.array2string(np.around(cons_vec), 3), 'lof_score': min(0, s.min()), 'gof_score': max(0, s.max()), 'oncosplice_score': sum(s)}
