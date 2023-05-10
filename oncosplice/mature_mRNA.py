@@ -145,29 +145,29 @@ class mature_mRNA(pre_mRNA):
 
         G = nx.DiGraph()
         G.add_nodes_from([n.pos for n in nodes])
-        for n in [1, 2]:
-            for i in range(len(nodes)):
-                trailing_prob, in_between = 0, []
-                for j in range(i + 1, len(nodes)):
-                    curr_node, next_node = nodes[i], nodes[j]
-                    spread = curr_node.ss_type in in_between
-                    in_between.append(next_node.ss_type)
+        # for n in [1, 2]:
+        for i in range(len(nodes)):
+            trailing_prob, in_between = 0, []
+            for j in range(i + 1, len(nodes)):
+                curr_node, next_node = nodes[i], nodes[j]
+                spread = curr_node.ss_type in in_between
+                in_between.append(next_node.ss_type)
 
-                    if curr_node.ss_type != next_node.ss_type:
-                        if spread:
-                            new_prob = next_node.prob - trailing_prob #if n == 1 else curr_node.prob - trailing_prob
-                        else:
-                            new_prob = next_node.prob #if n == 1 else curr_node.prob
+                if curr_node.ss_type != next_node.ss_type:
+                    if spread:
+                        new_prob = next_node.prob - trailing_prob #if n == 1 else curr_node.prob - trailing_prob
+                    else:
+                        new_prob = next_node.prob #if n == 1 else curr_node.prob
 
+                    trailing_prob += next_node.prob
 
-                        trailing_prob += next_node.prob
+                    if new_prob <= 0:
+                        break
 
-                        if new_prob <= 0:
-                            break
+                    # if n == 1:
+                    G.add_edge(curr_node.pos, next_node.pos)
+                    G.edges[curr_node.pos, next_node.pos]['weight'] = new_prob
 
-                        if n == 1:
-                            G.add_edge(curr_node.pos, next_node.pos)
-                            G.edges[curr_node.pos, next_node.pos]['weight'] = new_prob
                         # else:
                         #     if G.has_edge(next_node.pos, curr_node.pos):
                         #         G.edges[next_node.pos, curr_node.pos]['weight'] = max(
@@ -177,7 +177,7 @@ class mature_mRNA(pre_mRNA):
                         #         G.add_edge(next_node.pos, curr_node.pos)
                         #         G.edges[next_node.pos, curr_node.pos]['weight'] = new_prob
 
-            nodes.reverse()
+            # nodes.reverse()
 
         new_paths, prob_sum = {}, 0
         for i, path in enumerate(nx.all_simple_paths(G, self.transcript_start, self.transcript_end)):
