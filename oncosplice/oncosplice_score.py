@@ -1,7 +1,7 @@
 import numpy as np
 
 def moving_average_conv(vector, W):
-    convolving_length = np.array([min(len(vector) + W - i, W, i) for i in range(W // 2, len(vector) + W // 2)])
+    convolving_length = np.array([min(len(vector) + W - i, W, i) for i in range(W // 2, len(vector) + W // 2)], dtype=floats)
     return sum_conv(vector, W) / convolving_length
 
 def sum_conv(vector, W):
@@ -10,11 +10,11 @@ def sum_conv(vector, W):
 def transform_conservation_vector(c, W=5):
     c[c<0] /= abs(min(c))                           # normalizing
     c[c>0] /= max(c)
-    c = 10 ** np.negative(sum_conv(c, W))           # smoothed and inverted evolutionary rate values; exponential polarizes values
+    c = 10.0 ** np.negative(sum_conv(c, W))           # smoothed and inverted evolutionary rate values; exponential polarizes values
     return c * len(c) / sum(c)                      # normalize so sum of conservation values is equal to the length of the protein, this can also be done with some arbitrary value such as 1000
 
 def find_unmodified_positions(lp, deletions, insertions, W):
-    unmodified_positions = np.ones(lp)
+    unmodified_positions = np.ones(lp, dtype=float)
     for pos, deletion in deletions.items():
         unmodified_positions[pos:pos+len(deletion)] = 0
 
