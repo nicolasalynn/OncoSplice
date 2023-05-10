@@ -10,10 +10,10 @@ def moving_average_conv_modified(vector, W):
 def sum_conv(vector, W):
     return np.convolve(vector, np.ones(W), mode='same')
 
-def transform_conservation_vector(c, W=5):
+def transform_conservation_vector(c, W=9):
     c[c<0] /= abs(min(c))                           # normalizings
     c[c>0] /= max(c)
-    c = 10.0 ** np.negative(sum_conv(c, W))                      # smoothed and inverted evolutionary rate values; exponential polarizes values
+    c = np.exp(np.negative(sum_conv(c, W)))                      # smoothed and inverted evolutionary rate values; exponential polarizes values
     return c * len(c) / sum(c)                      # normalize so sum of conservation values is equal to the length of the protein, this can also be done with some arbitrary value such as 1000
 
 def find_unmodified_positions(lp, deletions, insertions, W):
@@ -29,16 +29,11 @@ def find_unmodified_positions(lp, deletions, insertions, W):
     return unmodified_positions
 def calculate_oncosplice_scores(deletions, insertions, cons_vec, W):
     cons_vec = transform_conservation_vector(cons_vec)
-    print(cons_vec)
     unmodified_positions = find_unmodified_positions(len(cons_vec), deletions=deletions, insertions=insertions, W=W)
-    print(unmodified_positions)
     alignment_ratio_vector = moving_average_conv_modified(unmodified_positions, W) - 1
-    print(alignment_ratio_vector)
     functional_loss_vector = cons_vec * (1 - unmodified_positions)
-    print(functional_loss_vector)
     s = alignment_ratio_vector * functional_loss_vector #/ len(cons_vec)
     s = sum_conv(s, W)
-    print(s)
     return {'cons_vec': np.array2string(np.around(cons_vec), 3), 'lof_score': min(0, s.min()), 'gof_score': max(0, s.max()), 'oncosplice_score': sum(s)}
 
 
