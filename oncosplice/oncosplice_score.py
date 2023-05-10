@@ -1,7 +1,7 @@
 import numpy as np
 
 def moving_average_conv(vector, W):
-    convolving_length = np.array([min(len(vector) + W - i, W, i) for i in range(W // 2, len(vector) + W // 2)], dtype=floats)
+    convolving_length = np.array([min(len(vector) + W - i, W, i) for i in range(W // 2, len(vector) + W // 2)], dtype=float)
     return sum_conv(vector, W) / convolving_length
 
 def sum_conv(vector, W):
