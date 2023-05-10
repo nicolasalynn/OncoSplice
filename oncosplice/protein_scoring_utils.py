@@ -63,7 +63,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['ref'] = mutation.ref if isinstance(mutation, Mutation) else ','.join([m.ref for m in mutation.variants])
         report['alt'] = mutation.alt if isinstance(mutation, Mutation) else ','.join([m.alt for m in mutation.variants])
         report['strand'] = '+' if not ref_prot.rev else '-'
-        report['transcipt_id'] = ref_prot.transcript_id
+        report['transcript_id'] = ref_prot.transcript_id
         report['ensembl_transcript_id'] = ref_prot.transcript_id.split('.')[0]
         report['isoform_id'] = var_prot.transcript_id.split('-')[-1]
         report['full_missplicing'] = json.dumps(missplicing)

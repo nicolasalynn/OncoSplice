@@ -60,7 +60,10 @@ def calculate_final_score(file='', df=None):
             return pd.Series(dtype='float64')
         if df.empty:
             return pd.Series(dtype='float64')
-        
+
+    if 'transcipt_id' in df.columns:
+        df.rename(columns={'transcipt_id': 'transcript_id'}, inplace=True)
+
     tracker = {}
     tracker['mut_id'] = df.iloc[0].mut_id
     missplicing = json.loads(df.iloc[0].full_missplicing)
