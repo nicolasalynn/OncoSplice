@@ -3,8 +3,6 @@ import os
 import pandas as pd
 import numpy as np
 
-
-
 def main(mut_id, sai_threshold=0.25, force=False, save_flag=True):
     from geney import unload_json, parse_in_args, get_correct_gene_file
     from oncosplice import oncosplice_setup

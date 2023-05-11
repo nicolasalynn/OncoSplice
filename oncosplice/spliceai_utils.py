@@ -181,19 +181,20 @@ def find_missplicing_spliceai_adaptor(input, sai_mrg_context=5000, min_coverage=
     splicing_res_path = splicingdb_path / gene_name
 
     missplicing_path = splicing_res_path / f"missplicing_{input.file_identifier}.json"
-    if oncosplice_setup['HOME'] and missplicing_path.exists() and not force:
+    if not force and oncosplice_setup['HOME'] and missplicing_path.exists():
         missplicing = unload_json(missplicing_path)
         missplicing = {outk: {float(k): v for k, v in outv.items()} for outk, outv in missplicing.items()}
         missplicing = {outk: {int(k) if k.is_integer() or 'missed' in outk else k: v for k, v in outv.items()} for outk, outv in
                        missplicing.items()}
         return apply_sai_threshold(missplicing, sai_threshold)
+    else:
 
-    missplicing = find_missplicing_spliceai(mutations, sai_mrg_context=sai_mrg_context, min_coverage=min_coverage, sai_threshold=0.1)
-    if oncosplice_setup['HOME'] and save_flag:
-        if not splicing_res_path.exists():
-            splicing_res_path.mkdir(parents=False)
-        dump_json(missplicing_path, missplicing)
-    return apply_sai_threshold(missplicing, sai_threshold)
+        missplicing = find_missplicing_spliceai(mutations, sai_mrg_context=sai_mrg_context, min_coverage=min_coverage, sai_threshold=0.1)
+        if save_flag and oncosplice_setup['HOME']:
+            if not splicing_res_path.exists():
+                splicing_res_path.mkdir(parents=False)
+            dump_json(missplicing_path, missplicing)
+        return apply_sai_threshold(missplicing, sai_threshold)
 
 def apply_sai_threshold(splicing_dict, threshold):
     new_dict = {}
