@@ -166,7 +166,7 @@ def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500
     return missplicing
 
 
-def find_missplicing_spliceai_adaptor(input, sai_mrg_context=5000, min_coverage=2500, sai_threshold=0.5, force=False):
+def find_missplicing_spliceai_adaptor(input, sai_mrg_context=5000, min_coverage=2500, sai_threshold=0.5, force=False, save_flag=True):
     if isinstance(input, EpistaticSet):
         splicingdb_path = oncosplice_setup['MISSPLICING_PATH'] / f'spliceai_epistatic'
         mutations = input.variants
@@ -189,7 +189,7 @@ def find_missplicing_spliceai_adaptor(input, sai_mrg_context=5000, min_coverage=
         return apply_sai_threshold(missplicing, sai_threshold)
 
     missplicing = find_missplicing_spliceai(mutations, sai_mrg_context=sai_mrg_context, min_coverage=min_coverage, sai_threshold=0.1)
-    if oncosplice_setup['HOME']:
+    if oncosplice_setup['HOME'] and save_flag:
         if not splicing_res_path.exists():
             splicing_res_path.mkdir(parents=False)
         dump_json(missplicing_path, missplicing)
