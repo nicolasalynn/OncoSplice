@@ -5,7 +5,7 @@ import numpy as np
 
 
 
-def main(mut_id, sai_threshold=0.25, force=False):
+def main(mut_id, sai_threshold=0.25, force=False, save_flag=True):
     from geney import unload_json, parse_in_args, get_correct_gene_file
     from oncosplice import oncosplice_setup
     from oncosplice.spliceai_utils import find_missplicing_spliceai_adaptor
@@ -26,7 +26,7 @@ def main(mut_id, sai_threshold=0.25, force=False):
     print(f'>> Processing: {input}')
 
     ################### MISSPLICING
-    missplicing = find_missplicing_spliceai_adaptor(input=input, sai_threshold=sai_threshold, force=force)
+    missplicing = find_missplicing_spliceai_adaptor(input=input, sai_threshold=sai_threshold, force=force, save_flag=save_flag)
     print(f'\tMissplicing: {missplicing}')
 
     ################### VARIANT ANNOTATIONS
