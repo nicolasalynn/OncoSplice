@@ -179,8 +179,8 @@ def find_missplicing_spliceai_adaptor(input, sai_mrg_context=5000, min_coverage=
 
     gene_name = input.gene
     splicing_res_path = splicingdb_path / gene_name
-
     missplicing_path = splicing_res_path / f"missplicing_{input.file_identifier}.json"
+
     if not force and oncosplice_setup['HOME'] and missplicing_path.exists():
         missplicing = unload_json(missplicing_path)
         missplicing = {outk: {float(k): v for k, v in outv.items()} for outk, outv in missplicing.items()}

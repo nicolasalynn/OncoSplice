@@ -59,8 +59,7 @@ def calculate_final_score(file='', df=None):
 
     tracker = {}
     tracker['mut_id'] = df.iloc[0].mut_id
-    missplicing = json.loads(df.iloc[0].full_missplicing)
-    tracker['interesting'] = any([missplicing.get('missed_donors', {}), missplicing.get('missed_acceptors', {}), missplicing.get('discovered_donors', {}), missplicing.get('discovered_acceptors', {})])
+    tracker['interesting'] = df.iloc[0].missplicing_flag
 
     lof_score_min = 0
     gof_score_max = 0
@@ -76,7 +75,6 @@ def calculate_final_score(file='', df=None):
     tracker['gof_score'] = gof_score_max
     tracker['lof_score'] = lof_score_min
     tracker['oncosplice_score'] = np.mean(df.oncosplice_score * df.isoform_prevalence)
-
     tracker['legacy_oncosplice_score'] = df.groupby('transcript_id').legacy_oncosplice_score.mean().max()
 
     temp = pd.Series(np.array([np.array(v) for v in list(tracker.values())]), index=list(tracker.keys()))
