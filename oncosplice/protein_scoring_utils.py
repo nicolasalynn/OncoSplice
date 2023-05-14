@@ -19,13 +19,16 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         if len(ref_prot.protein) < 20:
             continue
 
+        if not ref_prot.cons_available:
+            continue
+
         no_start_codon = False
         if not var_prot.protein:
             no_start_codon = True
             var_prot.protein = '*'
 
         alignment, num_ins, num_del = get_logical_alignment(ref_prot.protein, var_prot.protein)
-        deleted, inserted = get_insertions_and_deletions(alignment)
+        deleted, inserted, aligned = get_insertions_and_deletions(alignment)
 
         window_length = min(76, len(ref_prot.protein))
         cons_vector = np.array(ref_prot.conservation_vector, dtype=float)
@@ -77,6 +80,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['missplicing_event_summary'] = summarize_missplicing_event(pes, pir, es, ne, ir)
         report['reference_protein_length'] = len(ref_prot.protein)
         report['variant_protein_length'] = len(var_prot.protein)
+        report['preservation'] = aligned/len(ref_prot.protein)
         report['num_insertions'] = num_ins
         report['num_deletions'] = num_del
         report['insertions'] = json.dumps(inserted)
@@ -195,7 +199,7 @@ def get_insertions_and_deletions(alignment):
                 last_event = 'INS'
                 insertions[point_of_insertion] = ch_b
 
-    return deletions, insertions
+    return deletions, insertions, len(aligned_pos)
 
 
 def get_logical_alignment(r, v):
