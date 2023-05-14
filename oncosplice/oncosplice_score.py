@@ -31,16 +31,16 @@ def calculate_oncosplice_scores(deletions, insertions, cons_vec, W):
     unmodified_positions = find_unmodified_positions(len(cons_vec), deletions=deletions, insertions=insertions, W=W)
     alignment_ratio_vector = moving_average_conv_modified(unmodified_positions, W) - 1
     functional_loss_vector = cons_vec * (1 - unmodified_positions)
-    s = alignment_ratio_vector * functional_loss_vector #/ len(cons_vec)
-    s = sum_conv(s, W)
-    return {'cons_vec': np.array2string(np.around(cons_vec), 3), 'lof_score': min(0, s.min()), 'gof_score': max(0, s.max()), 'oncosplice_score': sum(s)}
+    s = alignment_ratio_vector * functional_loss_vector / len(cons_vec)
+    # s = moving_average_conv_modified(s, W)
+    stemp = abs(s)
+    return {'cons_vec': np.array2string(np.around(cons_vec), 3), 'lof_score': abs(min(0, s.min())), 'gof_score': max(0, s.max()), 'oncosplice_score': sum(stemp)/len(cons_vec)}
 
 
 ##### LEGACY ONCOSPLICE CALCS
 def legacy_smooth_cons_scores(cons_scores, W):
-    cons_scores = 2 ** np.negative(cons_scores)
-    cons_scores = moving_average_conv(cons_scores, W)
-    return cons_scores / cons_scores.max()
+    c = np.exp(np.negative(moving_average_conv_modified(cons_scores, W)))
+    return c - c.min()
 
 def calculate_del_penalty(deleted_domains, cons_scores, W):
     penalty = np.zeros(len(cons_scores)) #cons_scores.copy()

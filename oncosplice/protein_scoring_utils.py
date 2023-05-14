@@ -29,7 +29,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
 
         window_length = min(76, len(ref_prot.protein))
         cons_vector = np.array(ref_prot.conservation_vector, dtype=float)
-        scores = calculate_oncosplice_scores(deleted, inserted, cons_vector, window_length)
+        scores = calculate_oncosplice_scores(deleted, inserted, cons_vector, window_length//2)
         legacy_scores = calculate_legacy_oncosplice_score(deleted, inserted, cons_vector,
                                                           window_length)
 
