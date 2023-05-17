@@ -60,22 +60,14 @@ def calculate_final_score(file='', df=None):
     tracker = {}
     tracker['mut_id'] = df.iloc[0].mut_id
     tracker['interesting'] = df.iloc[0].missplicing_flag
-
-    lof_score_min = 0
-    gof_score_max = 0
-    for tid, g in df.groupby('transcript_id'):
-        g = g[g.isoform_prevalence == max(g.isoform_prevalence)]
-        lof_score = min(g.lof_score)
-        gof_score = max(g.gof_score)
-        if lof_score < lof_score_min:
-            lof_score_min = lof_score
-        if gof_score > gof_score_max:
-            gof_score_max = gof_score
-
-    tracker['gof_score'] = gof_score_max
-    tracker['lof_score'] = lof_score_min
-    tracker['oncosplice_score'] = np.mean(df.oncosplice_score * df.isoform_prevalence)
+    # df = df.loc[df.groupby('transcript_id')["isoform_prevalence"].idxmax()]
+    df['weighted_lof'] = df.lof_score * df.isoform_prevalence
+    df['weighted_gof'] = df.gof_score * df.isoform_prevalence
+    tracker['oncosplice_lof'] = df.groupby('transcript_id').weighted_lof.mean().min()
+    tracker['oncosplice_gof'] = df.groupby('transcript_id').weighted_gof.mean().max()
+    tracker['oncosplice_score'] = df.groupby('transcript_id').oncosplice_score.mean().max()
     tracker['legacy_oncosplice_score'] = df.groupby('transcript_id').legacy_oncosplice_score.mean().max()
+    tracker['legacy_oncosplice_score_cons'] = df[df.cons_available].groupby('transcript_id').legacy_oncosplice_score.mean().max()
 
     temp = pd.Series(np.array([np.array(v) for v in list(tracker.values())]), index=list(tracker.keys()))
     temp.name = temp.mut_id
