@@ -29,7 +29,7 @@ def find_unmodified_positions(lp, deletions, insertions, W):
 def calculate_oncosplice_scores(deletions, insertions, cons_vec, W):
     cons_vec = transform_conservation_vector(cons_vec, W=9)
     unmodified_positions = find_unmodified_positions(len(cons_vec), deletions=deletions, insertions=insertions, W=W)
-    # alignment_ratio_vector = moving_average_conv(unmodified_positions, W)
+    # alignment_ratio_vector = moving_average_conv_modified(unmodified_positions, W) - 1
     functional_loss_vector = cons_vec * (1 - unmodified_positions)
     # s = alignment_ratio_vector * functional_loss_vector / len(cons_vec)
     # s = moving_average_conv_modified(s, W)
