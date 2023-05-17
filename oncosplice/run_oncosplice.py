@@ -67,7 +67,7 @@ def calculate_final_score(file='', df=None):
                 highest_ms = abs(k2['delta'])
 
     df.oncosplice_score /= (1 - df.preservation)
-    df = df[df.isoform_penetrance >= 0.25]
+    df = df[df.isoform_prevalence >= 0.25]
 
     tracker = {}
     tracker['mut_id'] = df.iloc[0].mut_id
