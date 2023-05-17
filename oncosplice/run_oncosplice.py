@@ -66,7 +66,7 @@ def calculate_final_score(file='', df=None):
             if abs(k2['delta']) > highest_ms:
                 highest_ms = abs(k2['delta'])
 
-    df.oncosplice_score /= (1 - df.transcript_df.preservation)
+    df.oncosplice_score /= (1 - df.preservation)
     df = df[df.isoform_penetrance >= 0.25]
 
     tracker = {}
