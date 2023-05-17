@@ -57,6 +57,8 @@ def calculate_final_score(file='', df=None):
     if 'transcipt_id' in df.columns:
         df.rename(columns={'transcipt_id': 'transcript_id'}, inplace=True)
 
+    df = df.loc[~df.gene.isna()]
+
     missplicing = json.loads(df.iloc[0].full_missplicing)
     highest_ms = 0
     for i, k in missplicing.items():
@@ -64,7 +66,6 @@ def calculate_final_score(file='', df=None):
             if abs(k2['delta']) > highest_ms:
                 highest_ms = abs(k2['delta'])
     df['weighted_score'] = df.oncosplice_score * df.isoform_prevalence
-    df = df.dropna()
 
     tracker = {}
     tracker['mut_id'] = df.iloc[0].mut_id
