@@ -7,7 +7,7 @@ temp_loc = '/'.join(os.path.dirname(__file__).split('/')[:-1])
 
 oncosplice_setup = {}
 if sys.platform != 'darwin':
-    print('Geney, meet Power.')
+    print('OncoSplice, meet Power.')
     MACHINE = 'POWER'
     oncosplice_setup.update({
         'MACHINE': 'HOME',
@@ -21,7 +21,7 @@ if sys.platform != 'darwin':
 
 
 else:
-    print('Geney, meet Mac.')
+    print('OncoSplice, meet Mac.')
     MACHINE = 'MAC'
     oncosplice_setup.update({
         'MACHINE': 'REMOTE',

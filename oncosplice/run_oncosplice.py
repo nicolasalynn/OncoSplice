@@ -10,8 +10,13 @@ from oncosplice.variant_utils import EpistaticSet, Mutation
 from oncosplice.protein_scoring_utils import generate_report
 from pandas.errors import EmptyDataError
 import json
+from geney.general.performance_utils import check_ti
+
+fake_mut_id = 'KRAS:12:25227343:G:T'
 
 def main(mut_id, sai_threshold=0.25, force=False, save_flag=True):
+    tic = check_ti()
+
     if '|' in mut_id:
         input = EpistaticSet(mut_id)
     else:
@@ -24,9 +29,12 @@ def main(mut_id, sai_threshold=0.25, force=False, save_flag=True):
 
     print(f'>> Processing: {input}')
 
+    tic = check_ti(tic, 'set up space')
+
     ################### MISSPLICING
     missplicing = find_missplicing_spliceai_adaptor(input=input, sai_threshold=sai_threshold, force=force, save_flag=save_flag)
     print(f'\tMissplicing: {missplicing}')
+    tic = check_ti(tic, 'run oncosplice')
 
     ################### VARIANT ANNOTATIONS
     reference_gene = AnnotatedGene(annot_file)          # the next step is to have spliceai not have to repopen annotation data and rather to use the sequence build in the reference seq object... also we can check if a mutation is implemented before running splice ai.
@@ -39,6 +47,8 @@ def main(mut_id, sai_threshold=0.25, force=False, save_flag=True):
         return report
 
     report = pd.merge(report, reference_gene.tranex_tpm, on=['ensembl_transcript_id'], how='left')
+    tic = check_ti(tic, 'generate transcriptome predictions')
+
     return report
 
 def converter(instr, s):
