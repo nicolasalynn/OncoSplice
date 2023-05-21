@@ -20,4 +20,13 @@ if sys.platform != 'darwin':
     })
 
 
-
+else:
+    print('Geney, meet Mac.')
+    MACHINE = 'MAC'
+    oncosplice_setup.update({
+        'MACHINE': 'REMOTE',
+        'HOME': False,
+        'CHROM_SOURCE': Path('/Users/nl/Documents/data/Genomes/Human/human_hg38/Chromosome'),
+        'MRNA_PATH': Path('/Users/nl/Documents/phd/data/ensembl/mRNAs/protein_coding'),
+        # 'CONS_PATH': Path('/tamir1/nicolaslynn/data/Conservation/data'),
+    })

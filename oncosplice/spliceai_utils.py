@@ -1,7 +1,7 @@
 
 import pandas as pd
 import sys, os, glob
-from geney import reverse_complement, pull_fasta_seq_endpoints, get_correct_gene_file, unload_json, dump_json
+from geney import reverse_complement, pull_fasta_seq_endpoints, get_correct_gene_file, unload_json, dump_json, is_monotonic
 from oncosplice import oncosplice_setup
 from oncosplice.variant_utils import generate_mut_variant, Mutation, EpistaticSet
 
@@ -64,106 +64,87 @@ def get_actual_sai_seq(seq: str, sai_mrg_context: int=5000) -> str:
 ############################################################################################
 ############################################################################################
 
-
-def find_ss_changes(ref_dct, mut_dct, truths, threshold=0.5):
+def find_ss_changes(ref_dct, mut_dct, known_splice_sites, threshold=0.5):
+    '''
+    :param ref_dct:  the spliceai probabilities for each nucleotide (by genomic position) as a dictionary for the reference sequence
+    :param mut_dct:  the spliceai probabilities for each nucleotide (by genomic position) as a dictionary for the mutated sequence
+    :param known_splice_sites: the indices (by genomic position) that serve as known splice sites
+    :param threshold: the threshold for detection (difference between reference and mutated probabilities)
+    :return: two dictionaries; discovered_pos is a dictionary containing all the positions that meat the threshold for discovery
+            and deleted_pos containing all the positions that meet the threshold for missing and the condition for missing
+    '''
     new_dict = {v: mut_dct.get(v, 0) - ref_dct.get(v, 0) for v in
                 list(set(list(ref_dct.keys()) + list(mut_dct.keys())))}
-
-    discovered_pos, deleted_pos = {}, {}
-
-    for i, v in new_dict.items():
-        if v >= threshold and i not in truths:
-            discovered_pos[i] = {'delta': float(v), 'absolute': float(mut_dct.get(i, 0))}
-
-        elif v <= -threshold and i in truths:
-            deleted_pos[i] = {'delta': float(v), 'absolute': float(mut_dct.get(i, 0))}
-
+    discovered_pos = {k: {'delta': round(float(v), 3), 'absolute': round(float(mut_dct[k]), 3)} for k, v in
+                      new_dict.items() if k not in known_splice_sites and v >= threshold}
+    deleted_pos = {k: {'delta': round(float(v), 3), 'absolute': round(float(mut_dct.get(k, 0)), 3)} for k, v in
+                   new_dict.items() if k in known_splice_sites and v <= -threshold}
     return discovered_pos, deleted_pos
 
 
 def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500, sai_threshold=0.5):
     positions = [m.start for m in mutations]
     seq_start_pos = min(positions) - sai_mrg_context - min_coverage
-    seq_end_pos = max(positions) + sai_mrg_context + min_coverage + 1
+    seq_end_pos = max(positions) + sai_mrg_context + min_coverage  # + 1
 
     ref_seq, ref_indices = pull_fasta_seq_endpoints(mutations[0].chrom, seq_start_pos, seq_end_pos)
+    gene_data = unload_json(
+        get_correct_gene_file(gene_identifier=mutations[0].gene, target_directory=oncosplice_setup['MRNA_PATH']))
+    gene_start, gene_end, rev = gene_data['gene_start'], gene_data['gene_end'], gene_data['rev']
 
-    gene_data = unload_json(get_correct_gene_file(gene_identifier=mutations[0].gene, target_directory=oncosplice_setup['MRNA_PATH']))
-    gene_start, gene_end = gene_data['gene_start'], gene_data['gene_end']
-    rev = gene_data['rev']
+    mrna_acceptors = sorted(list(set([lst for lsts in
+                                      [mrna.get('acceptors', []) for mrna in gene_data['transcripts'].values() if
+                                       mrna['transcript_type'] == 'protein_coding'] for lst in lsts])))
+    mrna_donors = sorted(list(set([lst for lsts in
+                                   [mrna.get('donors', []) for mrna in gene_data['transcripts'].values() if
+                                    mrna['transcript_type'] == 'protein_coding'] for lst in lsts])))
+    print(mrna_acceptors, mrna_donors)
+    visible_donors = np.intersect1d(mrna_donors, ref_indices)
+    visible_acceptors = np.intersect1d(mrna_acceptors, ref_indices)
 
-    exon_starts, exon_ends = [], []
-    for tid, mrna in gene_data['transcripts'].items():
-        if 'acceptors' in mrna.keys() and 'donors' in mrna.keys():
-            exon_starts.extend(mrna['acceptors'])
-            exon_ends.extend(mrna['donors'])
-
-    mrna_acceptors, mrna_donors = sorted(list(set(exon_starts))), sorted(list(set(exon_ends)))
-
-    true_reference_donor_sites = np.intersect1d(mrna_donors, ref_indices)
-    true_reference_acceptor_sites = np.intersect1d(mrna_acceptors, ref_indices)
-
-    # assert gene_start in ref_indices, 'Gene start not in ref indices.'
-    start_cutoff = ref_indices.index(gene_start) if gene_start in ref_indices else 0
-    # assert gene_end in ref_indices, 'Gene end not in ref indices. '
-    end_cutoff = ref_indices.index(gene_end) if gene_end in ref_indices else len(ref_indices) - 1
-    seq_len = len(ref_indices) - 1
-    start_pad = start_cutoff
-    end_pad = seq_len - end_cutoff
-    ref_seq = 'N' * start_pad + ref_seq[start_cutoff:end_cutoff+1] + 'N' * end_pad
-    ref_indices = [-1] * start_pad + ref_indices[start_cutoff:end_cutoff+1] + [-1] * end_pad
-
-    mut_seq = ref_seq
-    mut_indices = ref_indices
-    del_pos = []
+    start_pad = ref_indices.index(gene_start) if gene_start in ref_indices else 0
+    end_cutoff = ref_indices.index(gene_end) if gene_end in ref_indices else len(ref_indices)  # - 1
+    end_pad = len(ref_indices) - end_cutoff
+    ref_seq = 'N' * start_pad + ref_seq[start_pad:end_cutoff] + 'N' * end_pad
+    ref_indices = [-1] * start_pad + ref_indices[start_pad:end_cutoff] + [-1] * end_pad
+    mut_seq, mut_indices = ref_seq, ref_indices
 
     for mut in mutations:
         mut_seq, mut_indices, _, _ = generate_mut_variant(seq=mut_seq, indices=mut_indices, mut=mut)
-        assert len(mut_seq) == len(mut_indices), f'seq no longer length of indices, {len(mut_seq)}, {len(mut_indices)}'
 
-        if mut.vartype == 'DEL':
-            del_pos.extend(list(range(mut.start, mut.start + len(mut.ref))))
+    ref_indices = ref_indices[sai_mrg_context:-sai_mrg_context]
+    mut_indices = mut_indices[sai_mrg_context:-sai_mrg_context]
 
     if rev:
         ref_seq = reverse_complement(ref_seq)
         mut_seq = reverse_complement(mut_seq)
+        ref_indices = ref_indices[::-1]
+        mut_indices = mut_indices[::-1]
 
     ref_seq_probs_temp = sai_predict_probs(ref_seq, sai_models)
     mut_seq_probs_temp = sai_predict_probs(mut_seq, sai_models)
-
-    ref_seq_acceptor_probs, ref_seq_donor_probs = list(ref_seq_probs_temp[0, :]), list(ref_seq_probs_temp[1, :])
-    mut_seq_acceptor_probs, mut_seq_donor_probs = list(mut_seq_probs_temp[0, :]), list(mut_seq_probs_temp[1, :])
-
-    if rev:
-        ref_seq_acceptor_probs.reverse()
-        ref_seq_donor_probs.reverse()
-        mut_seq_acceptor_probs.reverse()
-        mut_seq_donor_probs.reverse()
-
-    ref_indices = ref_indices[sai_mrg_context:-sai_mrg_context]
-    mut_indices = mut_indices[sai_mrg_context:-sai_mrg_context]
+    ref_seq_acceptor_probs, ref_seq_donor_probs = ref_seq_probs_temp[0, :], ref_seq_probs_temp[1, :]
+    mut_seq_acceptor_probs, mut_seq_donor_probs = mut_seq_probs_temp[0, :], mut_seq_probs_temp[1, :]
 
     assert len(ref_indices) == len(ref_seq_acceptor_probs), 'Reference pos not the same'
     assert len(mut_indices) == len(mut_seq_acceptor_probs), 'Mut pos not the same'
 
     iap, dap = find_ss_changes({p: v for p, v in list(zip(ref_indices, ref_seq_acceptor_probs))},
-                                              {p: v for p, v in list(zip(mut_indices, mut_seq_acceptor_probs))},
-                                              true_reference_acceptor_sites,
-                                              threshold=sai_threshold)
+                               {p: v for p, v in list(zip(mut_indices, mut_seq_acceptor_probs))},
+                               visible_acceptors,
+                               threshold=sai_threshold)
 
     assert len(ref_indices) == len(ref_seq_donor_probs), 'Reference pos not the same'
     assert len(mut_indices) == len(mut_seq_donor_probs), 'Mut pos not the same'
 
     idp, ddp = find_ss_changes({p: v for p, v in list(zip(ref_indices, ref_seq_donor_probs))},
-                                              {p: v for p, v in list(zip(mut_indices, mut_seq_donor_probs))},
-                                              true_reference_donor_sites,
-                                              threshold=sai_threshold)
-
+                               {p: v for p, v in list(zip(mut_indices, mut_seq_donor_probs))},
+                               visible_donors,
+                               threshold=sai_threshold)
 
     missplicing = {'missed_acceptors': dap, 'missed_donors': ddp, 'discovered_acceptors': iap, 'discovered_donors': idp}
     missplicing = {outk: {float(k): v for k, v in outv.items()} for outk, outv in missplicing.items()}
-    missplicing = {outk: {int(k) if k.is_integer() else k: v for k, v in outv.items()} for outk, outv in missplicing.items()}
-    return missplicing
+    return {outk: {int(k) if k.is_integer() else k: v for k, v in outv.items()} for outk, outv in missplicing.items()}
 
 
 def find_missplicing_spliceai_adaptor(input, sai_mrg_context=5000, min_coverage=2500, sai_threshold=0.5, force=False, save_flag=True):
@@ -201,3 +182,111 @@ def apply_sai_threshold(splicing_dict, threshold):
     for event, details in splicing_dict.items():
         new_dict[event] = {k: v for k, v in details.items() if v['delta'] >= threshold}
     return new_dict
+
+
+
+
+# def find_ss_changes(ref_dct, mut_dct, truths, threshold=0.5):
+#     new_dict = {v: mut_dct.get(v, 0) - ref_dct.get(v, 0) for v in
+#                 list(set(list(ref_dct.keys()) + list(mut_dct.keys())))}
+#
+#     discovered_pos, deleted_pos = {}, {}
+#     for i, v in new_dict.items():
+#         if v >= threshold and i not in truths:
+#             discovered_pos[i] = {'delta': float(v), 'absolute': float(mut_dct.get(i, 0))}
+#
+#         elif v <= -threshold and i in truths:
+#             deleted_pos[i] = {'delta': float(v), 'absolute': float(mut_dct.get(i, 0))}
+#
+#     return discovered_pos, deleted_pos
+#
+#
+# def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500, sai_threshold=0.5):
+#     positions = [m.start for m in mutations]
+#     seq_start_pos = min(positions) - sai_mrg_context - min_coverage
+#     seq_end_pos = max(positions) + sai_mrg_context + min_coverage + 1
+#
+#     ref_seq, ref_indices = pull_fasta_seq_endpoints(mutations[0].chrom, seq_start_pos, seq_end_pos)
+#
+#     gene_data = unload_json(get_correct_gene_file(gene_identifier=mutations[0].gene, target_directory=oncosplice_setup['MRNA_PATH']))
+#     gene_start, gene_end = gene_data['gene_start'], gene_data['gene_end']
+#     rev = gene_data['rev']
+#
+#     exon_starts, exon_ends = [], []
+#     for tid, mrna in gene_data['transcripts'].items():
+#         if mrna['transcript_type'] == 'protein_coding':
+#         # if 'acceptors' in mrna.keys() and 'donors' in mrna.keys():
+#             exon_starts.extend(mrna['acceptors'])
+#             exon_ends.extend(mrna['donors'])
+#
+#     mrna_acceptors, mrna_donors = sorted(list(set(exon_starts))), sorted(list(set(exon_ends)))
+#
+#     true_reference_donor_sites = np.intersect1d(mrna_donors, ref_indices)
+#     true_reference_acceptor_sites = np.intersect1d(mrna_acceptors, ref_indices)
+#
+#     start_cutoff = ref_indices.index(gene_start) if gene_start in ref_indices else 0
+#     end_cutoff = ref_indices.index(gene_end) if gene_end in ref_indices else len(ref_indices) - 1
+#     seq_len = len(ref_indices) - 1
+#     start_pad = start_cutoff
+#     end_pad = seq_len - end_cutoff
+#     ref_seq = 'N' * start_pad + ref_seq[start_cutoff:end_cutoff+1] + 'N' * end_pad
+#     ref_indices = [-1] * start_pad + ref_indices[start_cutoff:end_cutoff+1] + [-1] * end_pad
+#
+#     mut_seq = ref_seq
+#     mut_indices = ref_indices
+#     del_pos = []
+#
+#     for mut in mutations:
+#         mut_seq, mut_indices, _, _ = generate_mut_variant(seq=mut_seq, indices=mut_indices, mut=mut)
+#         assert len(mut_seq) == len(mut_indices), f'seq no longer length of indices, {len(mut_seq)}, {len(mut_indices)}'
+#         assert is_monotonic(mut_indices), f'Mut indices are not monotonic.'
+#         if mut.vartype == 'DEL':
+#             del_pos.extend(list(range(mut.start, mut.start + len(mut.ref))))
+#
+#     if rev:
+#         ref_seq = reverse_complement(ref_seq)
+#         mut_seq = reverse_complement(mut_seq)
+#         # ref_indices = ref_indices[::-1]
+#         # mut_indices = mut_indices[::-1]
+#
+#     ref_seq_probs_temp = sai_predict_probs(ref_seq, sai_models)
+#     mut_seq_probs_temp = sai_predict_probs(mut_seq, sai_models)
+#
+#     ref_seq_acceptor_probs, ref_seq_donor_probs = list(ref_seq_probs_temp[0, :]), list(ref_seq_probs_temp[1, :])
+#     mut_seq_acceptor_probs, mut_seq_donor_probs = list(mut_seq_probs_temp[0, :]), list(mut_seq_probs_temp[1, :])
+#
+#     if rev:
+#         # ref_seq_acceptor_probs.reverse()
+#         # ref_seq_donor_probs.reverse()
+#         # mut_seq_acceptor_probs.reverse()
+#         # mut_seq_donor_probs.reverse()
+#         ref_seq_acceptor_probs = ref_seq_acceptor_probs[::-1]
+#         ref_seq_donor_probs = ref_seq_donor_probs[::-1]
+#         mut_seq_acceptor_probs = mut_seq_acceptor_probs[::-1]
+#         mut_seq_donor_probs = mut_seq_donor_probs[::-1]
+#
+#     ref_indices = ref_indices[sai_mrg_context:-sai_mrg_context]
+#     mut_indices = mut_indices[sai_mrg_context:-sai_mrg_context]
+#
+#     assert len(ref_indices) == len(ref_seq_acceptor_probs), 'Reference pos not the same'
+#     assert len(mut_indices) == len(mut_seq_acceptor_probs), 'Mut pos not the same'
+#
+#     iap, dap = find_ss_changes({p: v for p, v in list(zip(ref_indices, ref_seq_acceptor_probs))},
+#                                               {p: v for p, v in list(zip(mut_indices, mut_seq_acceptor_probs))},
+#                                               true_reference_acceptor_sites,
+#                                               threshold=sai_threshold)
+#
+#     assert len(ref_indices) == len(ref_seq_donor_probs), 'Reference pos not the same'
+#     assert len(mut_indices) == len(mut_seq_donor_probs), 'Mut pos not the same'
+#
+#     idp, ddp = find_ss_changes({p: v for p, v in list(zip(ref_indices, ref_seq_donor_probs))},
+#                                               {p: v for p, v in list(zip(mut_indices, mut_seq_donor_probs))},
+#                                               true_reference_donor_sites,
+#                                               threshold=sai_threshold)
+#
+#
+#     missplicing = {'missed_acceptors': dap, 'missed_donors': ddp, 'discovered_acceptors': iap, 'discovered_donors': idp}
+#     missplicing = {outk: {float(k): v for k, v in outv.items()} for outk, outv in missplicing.items()}
+#     missplicing = {outk: {int(k) if k.is_integer() else k: v for k, v in outv.items()} for outk, outv in missplicing.items()}
+#     return missplicing
+
