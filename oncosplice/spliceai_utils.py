@@ -194,7 +194,7 @@ def find_missplicing_spliceai_adaptor(input, sai_mrg_context=5000, min_coverage=
 def apply_sai_threshold(splicing_dict, threshold):
     new_dict = {}
     for event, details in splicing_dict.items():
-        new_dict[event] = {k: v for k, v in details.items() if v['delta'] >= threshold}
+        new_dict[event] = {k: v for k, v in details.items() if abs(v['delta']) >= threshold}
     return new_dict
 
 
