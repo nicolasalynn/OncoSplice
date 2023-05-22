@@ -64,6 +64,7 @@ def get_actual_sai_seq(seq: str, sai_mrg_context: int=5000) -> str:
 ############################################################################################
 ############################################################################################
 
+
 def find_ss_changes(ref_dct, mut_dct, known_splice_sites, threshold=0.5):
     '''
     :param ref_dct:  the spliceai probabilities for each nucleotide (by genomic position) as a dictionary for the reference sequence
@@ -80,7 +81,6 @@ def find_ss_changes(ref_dct, mut_dct, known_splice_sites, threshold=0.5):
 
     deleted_pos = {k: {'delta': round(float(v), 3), 'absolute': round(float(mut_dct.get(k, 0)), 3)} for k, v in
                    new_dict.items() if k in known_splice_sites and v <= -threshold}
-    print(f'Here: {new_dict[95978189]}')
     return discovered_pos, deleted_pos
 
 
@@ -103,7 +103,6 @@ def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500
 
     visible_donors = np.intersect1d(mrna_donors, ref_indices)
     visible_acceptors = np.intersect1d(mrna_acceptors, ref_indices)
-    print(visible_acceptors, visible_donors)
 
     start_pad = ref_indices.index(gene_start) if gene_start in ref_indices else 0
     end_cutoff = ref_indices.index(gene_end) if gene_end in ref_indices else len(ref_indices)  # - 1
@@ -118,7 +117,6 @@ def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500
     ref_indices = ref_indices[sai_mrg_context:-sai_mrg_context]
     mut_indices = mut_indices[sai_mrg_context:-sai_mrg_context]
 
-
     if rev:
         ref_seq = reverse_complement(ref_seq)
         mut_seq = reverse_complement(mut_seq)
@@ -129,13 +127,15 @@ def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500
     mut_seq_probs_temp = sai_predict_probs(mut_seq, sai_models)
 
     ### temp
-    new_probs = np.abs(np.array(ref_seq_probs_temp) - np.array(mut_seq_probs_temp))
-    relevant_changes = np.where(new_probs > 0.1)
-    acceptor_change_indices = [ref_indices[v] for v in relevant_changes[0, :]]
-    donor_change_indices = [ref_indices[v] for v in relevant_changes[1, :]]
-    
-    print(acceptor_change_indices)
-    print(donor_change_indices)
+    #     new_probs = np.abs(np.array(ref_seq_probs_temp) - np.array(mut_seq_probs_temp))
+    #     acceptor_change_indices = np.array(np.where(new_probs[0] > 0.1))
+    #     acceptor_change_indices = [ref_indices[v] for v in acceptor_change_indices[:, 0]]
+
+    #     donor_change_indices = np.array(np.where(new_probs[1] > 0.1))
+    #     donor_change_indices = [ref_indices[v] for v in donor_change_indices[:, 0]]
+
+    #     print(acceptor_change_indices)
+    #     print(donor_change_indices)
 
     ref_seq_acceptor_probs, ref_seq_donor_probs = ref_seq_probs_temp[0, :], ref_seq_probs_temp[1, :]
     mut_seq_acceptor_probs, mut_seq_donor_probs = mut_seq_probs_temp[0, :], mut_seq_probs_temp[1, :]
