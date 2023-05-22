@@ -98,7 +98,6 @@ def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500
     mrna_donors = sorted(list(set([lst for lsts in
                                    [mrna.get('donors', []) for mrna in gene_data['transcripts'].values() if
                                     mrna['transcript_type'] == 'protein_coding'] for lst in lsts])))
-    print(mrna_acceptors, mrna_donors)
 
     visible_donors = np.intersect1d(mrna_donors, ref_indices)
     visible_acceptors = np.intersect1d(mrna_acceptors, ref_indices)
@@ -117,6 +116,7 @@ def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500
     ref_indices = ref_indices[sai_mrg_context:-sai_mrg_context]
     mut_indices = mut_indices[sai_mrg_context:-sai_mrg_context]
 
+
     if rev:
         ref_seq = reverse_complement(ref_seq)
         mut_seq = reverse_complement(mut_seq)
@@ -125,6 +125,12 @@ def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500
 
     ref_seq_probs_temp = sai_predict_probs(ref_seq, sai_models)
     mut_seq_probs_temp = sai_predict_probs(mut_seq, sai_models)
+
+    ### temp
+    new_probs = np.array(ref_seq_probs_temp) - np.array(mut_seq_probs_temp)
+    print(new_probs)
+
+
     ref_seq_acceptor_probs, ref_seq_donor_probs = ref_seq_probs_temp[0, :], ref_seq_probs_temp[1, :]
     mut_seq_acceptor_probs, mut_seq_donor_probs = mut_seq_probs_temp[0, :], mut_seq_probs_temp[1, :]
 
