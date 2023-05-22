@@ -140,7 +140,7 @@ def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500
 
     iap, dap = find_ss_changes({p: v for p, v in list(zip(ref_indices, ref_seq_acceptor_probs))},
                                {p: v for p, v in list(zip(mut_indices, mut_seq_acceptor_probs))},
-                               visible_acceptors,
+                               visible_donors,
                                threshold=sai_threshold)
 
     assert len(ref_indices) == len(ref_seq_donor_probs), 'Reference pos not the same'
@@ -148,7 +148,7 @@ def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500
 
     idp, ddp = find_ss_changes({p: v for p, v in list(zip(ref_indices, ref_seq_donor_probs))},
                                {p: v for p, v in list(zip(mut_indices, mut_seq_donor_probs))},
-                               visible_donors,
+                               visible_acceptors,
                                threshold=sai_threshold)
 
     missplicing = {'missed_acceptors': dap, 'missed_donors': ddp, 'discovered_acceptors': iap, 'discovered_donors': idp}
