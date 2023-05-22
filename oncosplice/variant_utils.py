@@ -50,6 +50,7 @@ class Mutation:
 
 def generate_mut_variant(seq: str, indices: list, mut: Mutation):
     offset = 1 if not mut.ref else 0
+
     check_indices = list(range(mut.start, mut.start + len(mut.ref) + offset))
     check1 = all([m in indices for m in check_indices])
     if not check1:
