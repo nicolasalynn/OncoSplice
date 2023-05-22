@@ -102,7 +102,7 @@ def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500
 
     visible_donors = np.intersect1d(mrna_donors, ref_indices)
     visible_acceptors = np.intersect1d(mrna_acceptors, ref_indices)
-    print(mrna_acceptors, mrna_donors)
+    print(visible_acceptors, visible_donors)
 
     start_pad = ref_indices.index(gene_start) if gene_start in ref_indices else 0
     end_cutoff = ref_indices.index(gene_end) if gene_end in ref_indices else len(ref_indices)  # - 1
