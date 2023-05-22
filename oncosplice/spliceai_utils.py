@@ -127,8 +127,8 @@ def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500
     mut_seq_probs_temp = sai_predict_probs(mut_seq, sai_models)
 
     ### temp
-    new_probs = np.array(ref_seq_probs_temp) - np.array(mut_seq_probs_temp)
-    print(new_probs)
+    new_probs = np.abs(np.array(ref_seq_probs_temp) - np.array(mut_seq_probs_temp))
+    print(np.where(new_probs > 0.1))
 
 
     ref_seq_acceptor_probs, ref_seq_donor_probs = ref_seq_probs_temp[0, :], ref_seq_probs_temp[1, :]
