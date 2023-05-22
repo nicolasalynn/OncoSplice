@@ -77,8 +77,10 @@ def find_ss_changes(ref_dct, mut_dct, known_splice_sites, threshold=0.5):
                 list(set(list(ref_dct.keys()) + list(mut_dct.keys())))}
     discovered_pos = {k: {'delta': round(float(v), 3), 'absolute': round(float(mut_dct[k]), 3)} for k, v in
                       new_dict.items() if k not in known_splice_sites and v >= threshold}
+
     deleted_pos = {k: {'delta': round(float(v), 3), 'absolute': round(float(mut_dct.get(k, 0)), 3)} for k, v in
                    new_dict.items() if k in known_splice_sites and v <= -threshold}
+    print(f'Here: {new_dict[95978189]}')
     return discovered_pos, deleted_pos
 
 
@@ -128,9 +130,12 @@ def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500
 
     ### temp
     new_probs = np.abs(np.array(ref_seq_probs_temp) - np.array(mut_seq_probs_temp))
-    print(np.where(new_probs > 0.1))
-    print(new_probs[np.where(new_probs > 0.1)])
-    print(ref_indices[2515], ref_indices[2582])
+    relevant_changes = np.where(new_probs > 0.1)
+    acceptor_change_indices = [ref_indices[v] for v in relevant_changes[0, :]]
+    donor_change_indices = [ref_indices[v] for v in relevant_changes[1, :]]
+    
+    print(acceptor_change_indices)
+    print(donor_change_indices)
 
     ref_seq_acceptor_probs, ref_seq_donor_probs = ref_seq_probs_temp[0, :], ref_seq_probs_temp[1, :]
     mut_seq_acceptor_probs, mut_seq_donor_probs = mut_seq_probs_temp[0, :], mut_seq_probs_temp[1, :]
@@ -140,7 +145,7 @@ def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500
 
     iap, dap = find_ss_changes({p: v for p, v in list(zip(ref_indices, ref_seq_acceptor_probs))},
                                {p: v for p, v in list(zip(mut_indices, mut_seq_acceptor_probs))},
-                               visible_donors,
+                               visible_acceptors,
                                threshold=sai_threshold)
 
     assert len(ref_indices) == len(ref_seq_donor_probs), 'Reference pos not the same'
@@ -148,7 +153,7 @@ def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500
 
     idp, ddp = find_ss_changes({p: v for p, v in list(zip(ref_indices, ref_seq_donor_probs))},
                                {p: v for p, v in list(zip(mut_indices, mut_seq_donor_probs))},
-                               visible_acceptors,
+                               visible_donors,
                                threshold=sai_threshold)
 
     missplicing = {'missed_acceptors': dap, 'missed_donors': ddp, 'discovered_acceptors': iap, 'discovered_donors': idp}
