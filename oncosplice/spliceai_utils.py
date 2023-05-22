@@ -74,13 +74,17 @@ def find_ss_changes(ref_dct, mut_dct, known_splice_sites, threshold=0.5):
     :return: two dictionaries; discovered_pos is a dictionary containing all the positions that meat the threshold for discovery
             and deleted_pos containing all the positions that meet the threshold for missing and the condition for missing
     '''
+
     new_dict = {v: mut_dct.get(v, 0) - ref_dct.get(v, 0) for v in
                 list(set(list(ref_dct.keys()) + list(mut_dct.keys())))}
+
     discovered_pos = {k: {'delta': round(float(v), 3), 'absolute': round(float(mut_dct[k]), 3)} for k, v in
-                      new_dict.items() if k not in known_splice_sites and v >= threshold}
+                      new_dict.items() if (k not in known_splice_sites and v >= threshold) or (v > 0.45)}
 
     deleted_pos = {k: {'delta': round(float(v), 3), 'absolute': round(float(mut_dct.get(k, 0)), 3)} for k, v in
                    new_dict.items() if k in known_splice_sites and v <= -threshold}
+
+
     return discovered_pos, deleted_pos
 
 
