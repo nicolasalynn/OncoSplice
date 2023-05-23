@@ -14,7 +14,9 @@ from geney.general.performance_utils import check_ti
 
 fake_mut_id = 'KRAS:12:25227343:G:T'
 
-def main(mut_id, sai_threshold=0.25, force=False, save_flag=True):
+def main(mut_id, sai_threshold=0.25, min_coverage=2500, force=False, save_flag=True, show_output=False):
+    oncosplice_setup['show_output'] = show_output
+
     tic = check_ti()
 
     if '|' in mut_id:
@@ -32,7 +34,7 @@ def main(mut_id, sai_threshold=0.25, force=False, save_flag=True):
     tic = check_ti(tic, 'set up space')
 
     ################### MISSPLICING
-    missplicing = find_missplicing_spliceai_adaptor(input=input, sai_threshold=sai_threshold, force=force, save_flag=save_flag)
+    missplicing = find_missplicing_spliceai_adaptor(input=input, sai_threshold=sai_threshold, min_coverage=min_coverage, force=force, save_flag=save_flag)
     print(f'\tMissplicing: {missplicing}')
     tic = check_ti(tic, 'run oncosplice')
 
@@ -53,6 +55,7 @@ def main(mut_id, sai_threshold=0.25, force=False, save_flag=True):
 
 def converter(instr, s):
     return np.fromstring(instr[1:-1], count=s, sep=' ')
+
 def calculate_final_score(file='', df=None):
     if file:
         try:

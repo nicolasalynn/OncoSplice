@@ -4,6 +4,7 @@ from Bio.pairwise2 import format_alignment
 import pandas as pd
 import re
 import json
+from oncosplice import oncosplice_setup
 
 from oncosplice.variant_utils import Mutation, EpistaticSet
 from oncosplice.oncosplice_score import calculate_oncosplice_scores, calculate_legacy_oncosplice_score
@@ -27,6 +28,8 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
             no_start_codon = True
             var_prot.protein = '*'
 
+        if oncosplice_setup.get('show_output', False):
+            print(f"Transcript: {var_prot.transcript_id.split('-')[-1]}")
         alignment, num_ins, num_del = get_logical_alignment(ref_prot.protein, var_prot.protein)
         deleted, inserted, aligned = get_insertions_and_deletions(alignment)
 
