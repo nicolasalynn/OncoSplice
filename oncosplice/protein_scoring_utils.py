@@ -19,9 +19,9 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         ref_prot, var_prot = ref_proteome[ref_id], var_proteome[var_id]
         if len(ref_prot.protein) < 20:
             continue
-
-        if not ref_prot.cons_available:
-            continue
+        #
+        # if not ref_prot.cons_available:
+        #     continue
 
         no_start_codon = False
         if not var_prot.protein:
