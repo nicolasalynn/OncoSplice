@@ -83,11 +83,11 @@ def calculate_final_score(file='', df=None):
     tracker = {}
     tracker['mut_id'] = df.iloc[0].mut_id
     tracker['highest_splicing_penetrance'] = highest_ms
-    tracker['new_oncosplice_score'] = df.groupby('transcript_id').oncosplice_score.mean().max()
-    tracker['new_oncosplice_score2'] = df.groupby('transcript_id').oncosplice_preservation1.mean().max()
-    tracker['new_oncosplice_score3'] = df.groupby('transcript_id').oncosplice_window.mean().max()
-    tracker['preservation'] = df.groupby('transcript_id').preservation.mean().min()
-    tracker['legacy_oncosplice_score'] = df.groupby('transcript_id').legacy_oncosplice_score.mean().max()
+    tracker['new_oncosplice_score'] = df.groupby('transcript_id').oncosplice_score.mean()
+    tracker['new_oncosplice_score2'] = df.groupby('transcript_id').oncosplice_preservation1.mean()
+    tracker['new_oncosplice_score3'] = df.groupby('transcript_id').oncosplice_window.mean()
+    tracker['preservation'] = df.groupby('transcript_id').preservation.mean()
+    tracker['legacy_oncosplice_score'] = df.groupby('transcript_id').legacy_oncosplice_score.mean()
     temp = pd.Series(np.array([np.array(v) for v in list(tracker.values())]), index=list(tracker.keys()))
     temp.name = temp.mut_id
     temp.index.name = 'mut_id'
