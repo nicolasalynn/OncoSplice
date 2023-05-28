@@ -134,6 +134,7 @@ class mature_mRNA(pre_mRNA):
                 [SpliceSite(pos=pos, ss_type=1, prob=prob) for pos, prob in exon_starts.items() if
                  lower_range <= pos <= upper_range]
 
+        nodes = [s for s in nodes if s.prob > 0]
         nodes.sort(key=lambda x: x.pos, reverse=self.rev)
 
         # while nodes[0].ss_type == 0:
@@ -154,17 +155,17 @@ class mature_mRNA(pre_mRNA):
                 if curr_node.ss_type != next_node.ss_type:
                     if spread:
                         new_prob = next_node.prob - trailing_prob
-                    else:
-                        new_prob = next_node.prob
+                        if new_prob <= 0:
+                            break
+
                         G.add_edge(curr_node.pos, next_node.pos)
                         G.edges[curr_node.pos, next_node.pos]['weight'] = new_prob
+                        trailing_prob += next_node.prob
 
-                    trailing_prob += next_node.prob
-                    if new_prob <= 0:
-                        break
-                        
-                    G.add_edge(curr_node.pos, next_node.pos)
-                    G.edges[curr_node.pos, next_node.pos]['weight'] = new_prob
+                    else:
+                        G.add_edge(curr_node.pos, next_node.pos)
+                        G.edges[curr_node.pos, next_node.pos]['weight'] = next_node.prob
+                        trailing_prob += next_node.prob
 
 
         new_paths, prob_sum = {}, 0
