@@ -115,6 +115,10 @@ class mature_mRNA(pre_mRNA):
         exon_starts = {v: 1 for v in self.acceptors + [self.transcript_start]}
         exon_ends = {v: 1 for v in self.donors + [self.transcript_end]}
 
+        # exon_starts = {v: 1 for v in self.acceptors}
+        # exon_ends = {v: 1 for v in self.donors}
+        #
+
         for k, v in aberrant_splicing.get('missed_donors', {}).items():
             if k in exon_ends.keys():
                 exon_ends[k] = v['absolute']
@@ -166,7 +170,11 @@ class mature_mRNA(pre_mRNA):
                     G.add_edge(curr_node.pos, next_node.pos)
                     G.edges[curr_node.pos, next_node.pos]['weight'] = new_prob
 
-
+        print(G)
+        print(G.nodes)
+        print(G.edges)
+        print(self.transcript_start, self.transcript_end)
+        
         new_paths, prob_sum = {}, 0
         for i, path in enumerate(nx.all_simple_paths(G, self.transcript_start, self.transcript_end)):
             print(f"\tPath {i}: {path}")
