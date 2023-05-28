@@ -19,7 +19,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         ref_prot, var_prot = ref_proteome[ref_id], var_proteome[var_id]
         if len(ref_prot.protein) < 20:
             continue
-        #
+
         # if not ref_prot.cons_available:
         #     continue
 
@@ -30,6 +30,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
 
         if oncosplice_setup.get('show_output', False):
             print(f"Transcript: {var_prot.transcript_id.split('-')[-1]}")
+
         alignment, num_ins, num_del = get_logical_alignment(ref_prot.protein, var_prot.protein)
         deleted, inserted, aligned = get_insertions_and_deletions(alignment)
 

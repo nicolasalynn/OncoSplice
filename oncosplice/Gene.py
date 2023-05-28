@@ -164,6 +164,7 @@ class AnnotatedGene(EmptyGene):
             for tid_counter, new_blueprints in enumerate(
                     ref_transcript.develop_aberrant_splicing(
                                               aberrant_splicing=aberrant_splicing)):
+
                 var_transcript = copy.deepcopy(self.transcripts[tid])
                 var_transcript['protein_seq'] = var_transcript['transcript_seq'] = ''
                 var_transcript['transcript_id'] += f'-{tid_counter}'

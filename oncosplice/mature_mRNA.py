@@ -144,7 +144,6 @@ class mature_mRNA(pre_mRNA):
 
         G = nx.DiGraph()
         G.add_nodes_from([n.pos for n in nodes])
-        # for n in [1, 2]:
         for i in range(len(nodes)):
             trailing_prob, in_between = 0, []
             for j in range(i + 1, len(nodes)):
@@ -163,20 +162,9 @@ class mature_mRNA(pre_mRNA):
                     if new_prob <= 0:
                         break
 
-                    # if n == 1:
                     G.add_edge(curr_node.pos, next_node.pos)
                     G.edges[curr_node.pos, next_node.pos]['weight'] = new_prob
 
-                        # else:
-                        #     if G.has_edge(next_node.pos, curr_node.pos):
-                        #         G.edges[next_node.pos, curr_node.pos]['weight'] = max(
-                        #             G.edges[next_node.pos, curr_node.pos]['weight'], new_prob)
-                        #     # if not G.has_edge(next_node.pos, curr_node.pos):
-                        #     else:
-                        #         G.add_edge(next_node.pos, curr_node.pos)
-                        #         G.edges[next_node.pos, curr_node.pos]['weight'] = new_prob
-
-            # nodes.reverse()
 
         new_paths, prob_sum = {}, 0
         for i, path in enumerate(nx.all_simple_paths(G, self.transcript_start, self.transcript_end)):
@@ -191,6 +179,8 @@ class mature_mRNA(pre_mRNA):
             d['path_weight'] = round(d['path_weight'] / prob_sum, 2)
 
         new_paths = {k: v for k, v in new_paths.items() if v['path_weight'] > 0.01}
+
+        print(f"New Paths: {new_paths}")
         return list(new_paths.values())
 
 
