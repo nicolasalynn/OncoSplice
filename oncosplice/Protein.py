@@ -52,7 +52,7 @@ class Protein(mature_mRNA):
             return False
 
     def __access_conservation_data(self):
-        files = [file for file in oncosplice_setup['CONS_PATH'].glob(f'*{self.transcript_id.replace(".", "-")}*')]
+        files = [file for file in oncosplice_setup['CONS_PATH'].glob(f"*{self.transcript_id.split('.')[0]}*")]
         if len(files) > 0:
             cons_data = unload_pickle(files[0])
             if cons_data['seq'] == self.protein:
