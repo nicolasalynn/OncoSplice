@@ -169,6 +169,7 @@ class mature_mRNA(pre_mRNA):
 
         new_paths, prob_sum = {}, 0
         for i, path in enumerate(nx.all_simple_paths(G, self.transcript_start, self.transcript_end)):
+            print(f"\tPath {i}: {path}")
             curr_prob = path_weight_mult(G, path, 'weight')
             prob_sum += curr_prob
             new_paths[i] = {'acceptors': sorted([p for p in path if p in exon_starts.keys() and p != self.transcript_start], reverse=self.rev),
@@ -179,9 +180,11 @@ class mature_mRNA(pre_mRNA):
         for i, d in new_paths.items():
             d['path_weight'] = round(d['path_weight'] / prob_sum, 2)
 
+        print(f"New Paths 1: {new_paths}")
+
         new_paths = {k: v for k, v in new_paths.items() if v['path_weight'] > 0.01}
 
-        print(f"New Paths: {new_paths}")
+        print(f"New Paths 2: {new_paths}")
         return list(new_paths.values())
 
 
