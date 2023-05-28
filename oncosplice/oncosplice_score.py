@@ -26,14 +26,16 @@ def find_unmodified_positions(lp, deletions, insertions):
 
     return unmodified_positions
 def calculate_oncosplice_scores(deletions, insertions, cons_vec, W):
-    cons_vec = transform_conservation_vector(cons_vec, W=9)
     unmodified_positions = find_unmodified_positions(len(cons_vec), deletions=deletions, insertions=insertions)
-    # alignment_ratio_vector = moving_average_conv(unmodified_positions, W)
-    functional_loss_vector = cons_vec * (1 - unmodified_positions)
-    # s = alignment_ratio_vector * functional_loss_vector / len(cons_vec)
-    # s = moving_average_conv_modified(s, W)
-    # stemp = abs(s)
-    return {'cons_vec': np.array2string(np.around(cons_vec), 3), 'oncosplice_score': sum(functional_loss_vector)/len(cons_vec), 'oncosplice_window': max(sum_conv(functional_loss_vector, W))}
+
+    functional_loss_vector_5 = transform_conservation_vector(cons_vec, W=5) * (1 - unmodified_positions)
+    functional_loss_vector_5 = sum_conv(functional_loss_vector_5, W=5)
+
+    functional_loss_vector_76 = transform_conservation_vector(cons_vec, W=76) * (1 - unmodified_positions)
+    functional_loss_vector_76 = sum_conv(functional_loss_vector_76, W=76)
+
+    return {'cons_vec': np.array2string(np.around(cons_vec), 3), 'oncosplice_score_lof': max(functional_loss_vector_76), 'oncosplice_score_gof': max(functional_loss_vector_5)}
+
 
     # return {'cons_vec': np.array2string(np.around(cons_vec), 3), 'lof_score': abs(min(0, s.min())), 'gof_score': max(0, s.max()), 'oncosplice_score': sum(stemp)/len(cons_vec)}
 

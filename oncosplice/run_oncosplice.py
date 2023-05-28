@@ -78,16 +78,16 @@ def calculate_final_score(file='', df=None):
                 highest_ms = abs(k2['delta'])
 
     df = df[df.isoform_prevalence >= 0.05]
-    df['oncosplice_preservation1'] = df.oncosplice_score / (1 - df.preservation)
 
     tracker = {}
     tracker['mut_id'] = df.iloc[0].mut_id
     tracker['highest_splicing_penetrance'] = highest_ms
-    tracker['new_oncosplice_score'] = df.groupby('transcript_id').oncosplice_score.mean()
-    tracker['new_oncosplice_score2'] = df.groupby('transcript_id').oncosplice_preservation1.mean()
-    tracker['new_oncosplice_score3'] = df.groupby('transcript_id').oncosplice_window.mean()
-    tracker['preservation'] = df.groupby('transcript_id').preservation.mean()
+    tracker['missplicing'] = json.dumps(missplicing)
     tracker['legacy_oncosplice_score'] = df.groupby('transcript_id').legacy_oncosplice_score.mean()
+    df['weighted_lof'] = df.oncosplice_score_lof * df.isoform_prevalence
+    df['weighted_gof'] = df.oncosplice_score_gof * df.isoform_prevalence
+    tracker['lof'] = df.groupby('transcript_id').weighted_lof.sum().mean()
+    tracker['gof'] = df.groupby('transcript_id').weighted_gof.sum().mean()
     temp = pd.Series(np.array([np.array(v) for v in list(tracker.values())]), index=list(tracker.keys()))
     temp.name = temp.mut_id
     temp.index.name = 'mut_id'
