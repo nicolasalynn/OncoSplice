@@ -140,11 +140,12 @@ class mature_mRNA(pre_mRNA):
 
         nodes.sort(key=lambda x: x.pos, reverse=self.rev)
 
-        while nodes[0].ss_type == 0:
-            nodes = nodes[1:]
+        # while nodes[0].ss_type == 0:
+        #     nodes = nodes[1:]
+        #
+        # while nodes[-1].ss_type == 1:
+        #     nodes = nodes[:-1]
 
-        while nodes[-1].ss_type == 1:
-            nodes = nodes[:-1]
         print(f"Nodes: {nodes}")
 
         G = nx.DiGraph()
@@ -158,13 +159,12 @@ class mature_mRNA(pre_mRNA):
 
                 if curr_node.ss_type != next_node.ss_type:
                     if spread:
-                        new_prob = next_node.prob - trailing_prob #if n == 1 else curr_node.prob - trailing_prob
+                        new_prob = next_node.prob - trailing_prob
                     else:
-                        new_prob = next_node.prob #if n == 1 else curr_node.prob
+                        new_prob = next_node.prob
 
                     trailing_prob += next_node.prob
-
-                    if new_prob <= 0:
+                    if new_prob < 0:
                         break
 
                     G.add_edge(curr_node.pos, next_node.pos)
@@ -174,7 +174,7 @@ class mature_mRNA(pre_mRNA):
         print(G.nodes)
         print(G.edges)
         print(self.transcript_start, self.transcript_end)
-        
+
         new_paths, prob_sum = {}, 0
         for i, path in enumerate(nx.all_simple_paths(G, self.transcript_start, self.transcript_end)):
             print(f"\tPath {i}: {path}")
