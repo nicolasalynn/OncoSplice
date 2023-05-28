@@ -83,7 +83,7 @@ def calculate_final_score(file='', df=None):
     tracker['mut_id'] = df.iloc[0].mut_id
     tracker['highest_splicing_penetrance'] = highest_ms
     tracker['missplicing'] = json.dumps(missplicing)
-    tracker['legacy_oncosplice_score'] = df.groupby('transcript_id').legacy_oncosplice_score.mean()
+    tracker['legacy_oncosplice_score'] = df.groupby('transcript_id').legacy_oncosplice_score.mean().max()
     df['weighted_lof'] = df.oncosplice_score_lof * df.isoform_prevalence
     df['weighted_gof'] = df.oncosplice_score_gof * df.isoform_prevalence
     tracker['lof'] = df.groupby('transcript_id').weighted_lof.sum().mean()
