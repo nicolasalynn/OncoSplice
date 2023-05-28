@@ -115,10 +115,6 @@ class mature_mRNA(pre_mRNA):
         exon_starts = {v: 1 for v in self.acceptors + [self.transcript_start]}
         exon_ends = {v: 1 for v in self.donors + [self.transcript_end]}
 
-        # exon_starts = {v: 1 for v in self.acceptors}
-        # exon_ends = {v: 1 for v in self.donors}
-        #
-
         for k, v in aberrant_splicing.get('missed_donors', {}).items():
             if k in exon_ends.keys():
                 exon_ends[k] = v['absolute']
@@ -146,8 +142,6 @@ class mature_mRNA(pre_mRNA):
         # while nodes[-1].ss_type == 1:
         #     nodes = nodes[:-1]
 
-        print(f"Nodes: {nodes}")
-
         G = nx.DiGraph()
         G.add_nodes_from([n.pos for n in nodes])
         for i in range(len(nodes)):
@@ -162,22 +156,19 @@ class mature_mRNA(pre_mRNA):
                         new_prob = next_node.prob - trailing_prob
                     else:
                         new_prob = next_node.prob
+                        G.add_edge(curr_node.pos, next_node.pos)
+                        G.edges[curr_node.pos, next_node.pos]['weight'] = new_prob
 
                     trailing_prob += next_node.prob
-                    if new_prob < 0:
+                    if new_prob <= 0:
                         break
-
+                        
                     G.add_edge(curr_node.pos, next_node.pos)
                     G.edges[curr_node.pos, next_node.pos]['weight'] = new_prob
 
-        print(G)
-        print(G.nodes)
-        print(G.edges)
-        print(self.transcript_start, self.transcript_end)
 
         new_paths, prob_sum = {}, 0
         for i, path in enumerate(nx.all_simple_paths(G, self.transcript_start, self.transcript_end)):
-            print(f"\tPath {i}: {path}")
             curr_prob = path_weight_mult(G, path, 'weight')
             prob_sum += curr_prob
             new_paths[i] = {'acceptors': sorted([p for p in path if p in exon_starts.keys() and p != self.transcript_start], reverse=self.rev),
@@ -188,11 +179,7 @@ class mature_mRNA(pre_mRNA):
         for i, d in new_paths.items():
             d['path_weight'] = round(d['path_weight'] / prob_sum, 2)
 
-        print(f"New Paths 1: {new_paths}")
-
         new_paths = {k: v for k, v in new_paths.items() if v['path_weight'] > 0.01}
-
-        print(f"New Paths 2: {new_paths}")
         return list(new_paths.values())
 
 
