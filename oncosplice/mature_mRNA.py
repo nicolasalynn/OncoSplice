@@ -141,6 +141,7 @@ class mature_mRNA(pre_mRNA):
 
         while nodes[-1].ss_type == 1:
             nodes = nodes[:-1]
+        print(f"Nodes: {nodes}")
 
         G = nx.DiGraph()
         G.add_nodes_from([n.pos for n in nodes])
