@@ -31,8 +31,12 @@ def calculate_oncosplice_scores(deletions, insertions, cons_vec, W):
     functional_loss_vector_5 = transform_conservation_vector(cons_vec, W=5) * (1 - unmodified_positions)
     functional_loss_vector_5 = sum_conv(functional_loss_vector_5, W=5)
 
-    functional_loss_vector_76 = transform_conservation_vector(cons_vec, W=76) * (1 - unmodified_positions)
-    functional_loss_vector_76 = sum_conv(functional_loss_vector_76, W=76)
+    if len(cons_vec) < 76:
+        W=len(cons_vec)-1
+    else:
+        W = 76
+    functional_loss_vector_76 = transform_conservation_vector(cons_vec, W=W) * (1 - unmodified_positions)
+    functional_loss_vector_76 = sum_conv(functional_loss_vector_76, W=W)
 
     return {'cons_vec': np.array2string(np.around(cons_vec), 3), 'oncosplice_score_lof': max(functional_loss_vector_76), 'oncosplice_score_gof': max(functional_loss_vector_5)}
 
