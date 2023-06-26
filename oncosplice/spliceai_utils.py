@@ -205,6 +205,31 @@ def apply_sai_threshold(splicing_dict, threshold):
             flag=True
     return new_dict
 
+def check_splicing_difference(missplicing1, missplicing2, threshold):
+    flag = False
+    true_differences = {}
+    for event in ['missed_acceptors', 'missed_donors']:
+        td = {}
+        dct1 = missplicing1[event]
+        dct2 = missplicing2[event]
+        for k in list(set(list(dct1.keys()) + list(dct2.keys()))):
+            diff = abs(dct1.get(k, {'delta': 0})['delta']) - abs(dct2.get(k, {'delta': 0})['delta'])
+            if abs(diff) >= threshold:
+                flag = True
+                td[k] = diff
+        true_differences[event] = td
+    for event in ['discovered_acceptors', 'discovered_donors']:
+        td = {}
+        dct1 = missplicing1[event]
+        dct2 = missplicing2[event]
+        for k in list(set(list(dct1.keys()) + list(dct2.keys()))):
+            diff = abs(dct1.get(k, {'delta': 0})['delta']) - abs(dct2.get(k, {'delta': 0})['delta'])
+            if abs(diff) >= threshold:
+                flag = True
+                td[k] = diff
+        true_differences[event] = td
+    return flag, true_differences
+
 
 def find_spliceai(input, sai_threshold=0.4):
     splicingdb_path = oncosplice_setup['MISSPLICING_PATH'] / f'spliceai_epistatic'

@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from geney import unload_json, parse_in_args, get_correct_gene_file, append_line
 from oncosplice import oncosplice_setup
-from oncosplice.spliceai_utils import find_missplicing_spliceai_adaptor
+from oncosplice.spliceai_utils import find_missplicing_spliceai_adaptor, check_splicing_difference
 from oncosplice.Gene import AnnotatedGene
 from oncosplice.variant_utils import EpistaticSet, Mutation
 from oncosplice.protein_scoring_utils import generate_report
@@ -42,14 +42,16 @@ def main(mut_id, sai_threshold=0.25, min_coverage=2500, force=False, save_flag=T
         return report
 
     report = pd.merge(report, reference_gene.tranex_tpm, on=['ensembl_transcript_id'], how='left')
-    return report
+    return report, missplicing
 
 def run_pairwise_and_constituents(epistasis):
     m1, m2 = epistasis.split('|')
     data = {}
-    data[epistasis] = main(epistasis)
-    data[m1] = main(m1)
-    data[m2] = main(m2)
+    data[epistasis], me = main(epistasis)
+    data[m1], m1 = main(m1)
+    data[m2], m2 = main(m2)
+    data['m1_vs_me'], _ = check_splicing_difference(me, m1, 0.4)
+    data['m2_vs_me'], _ = check_splicing_difference(me, m2, 0.4)
     return data
 
 def calculate_final_score(file='', df=None):
