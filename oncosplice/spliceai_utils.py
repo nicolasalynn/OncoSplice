@@ -166,11 +166,12 @@ def find_missplicing_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500
 
 
 def find_missplicing_spliceai_adaptor(input, sai_mrg_context=5000, min_coverage=2500, sai_threshold=0.5, force=False, save_flag=True):
+    splicingdb_path = oncosplice_setup['MISSPLICING_PATH'] / f'spliceai_epistatic'
     if isinstance(input, EpistaticSet):
-        splicingdb_path = oncosplice_setup['MISSPLICING_PATH'] / f'spliceai_epistatic'
+        # splicingdb_path = oncosplice_setup['MISSPLICING_PATH'] / f'spliceai_epistatic'
         mutations = input.variants
     elif isinstance(input, Mutation):
-        splicingdb_path = oncosplice_setup['MISSPLICING_PATH'] / f'spliceai_individual'
+        # splicingdb_path = oncosplice_setup['MISSPLICING_PATH'] / f'spliceai_individual'
         mutations = [input]
     else:
         print('Error...')
@@ -178,7 +179,7 @@ def find_missplicing_spliceai_adaptor(input, sai_mrg_context=5000, min_coverage=
 
     gene_name = input.gene
     splicing_res_path = splicingdb_path / gene_name
-    missplicing_path = splicing_res_path / f"missplicing_{input.file_identifier}.json"
+    missplicing_path = splicing_res_path / f"{input.file_identifier}.json"
 
     if not force and oncosplice_setup['HOME'] and missplicing_path.exists():
         missplicing = unload_json(missplicing_path)
@@ -197,12 +198,37 @@ def find_missplicing_spliceai_adaptor(input, sai_mrg_context=5000, min_coverage=
 
 def apply_sai_threshold(splicing_dict, threshold):
     new_dict = {}
+    flag = False
     for event, details in splicing_dict.items():
         new_dict[event] = {k: v for k, v in details.items() if abs(v['delta']) >= threshold}
-    return new_dict
+        if new_dict[event]:
+            flag=True
+    return new_dict, flag
 
 
+def find_spliceai(input, sai_threshold=0.4):
+    splicingdb_path = oncosplice_setup['MISSPLICING_PATH'] / f'spliceai_epistatic'
 
+    if isinstance(input, EpistaticSet):
+        # splicingdb_path = oncosplice_setup['MISSPLICING_PATH'] / f'spliceai_epistatic'
+        mutations = input.variants
+    elif isinstance(input, Mutation):
+        # splicingdb_path = oncosplice_setup['MISSPLICING_PATH'] / f'spliceai_individual'
+        mutations = [input]
+    else:
+        print('Error...')
+        return {}
+    gene_name = input.gene
+    splicing_res_path = splicingdb_path / gene_name
+    missplicing_path = splicing_res_path / f"{input.file_identifier}.json"
+    if missplicing_path.exists():
+        missplicing = unload_json(missplicing_path)
+        missplicing = {outk: {float(k): v for k, v in outv.items()} for outk, outv in missplicing.items()}
+        missplicing = {outk: {int(k) if k.is_integer() or 'missed' in outk else k: v for k, v in outv.items()} for outk, outv in
+                       missplicing.items()}
+        return apply_sai_threshold(missplicing, sai_threshold)
+    else:
+        return None
 
 # def find_ss_changes(ref_dct, mut_dct, truths, threshold=0.5):
 #     new_dict = {v: mut_dct.get(v, 0) - ref_dct.get(v, 0) for v in

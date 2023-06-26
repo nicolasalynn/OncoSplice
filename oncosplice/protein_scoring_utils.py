@@ -1,10 +1,22 @@
 import numpy as np
 from Bio import pairwise2
 from Bio.pairwise2 import format_alignment
+from Bio import Align
 import pandas as pd
 import re
 import json
 from oncosplice import oncosplice_setup
+
+aligner = Align.PairwiseAligner()
+aligner.mode = 'global'
+aligner.match_score = 1
+aligner.mismatch_score = -1
+aligner.open_gap_score = -3
+aligner.extend_gap_score = 0
+aligner.target_end_gap_score = 0
+aligner.query_end_gap_score = 0.0
+
+alignments = pairwise2.align.globalms(r, v, 1, -1, -3, 0, penalize_end_gaps=(True, False))
 
 from oncosplice.variant_utils import Mutation, EpistaticSet
 from oncosplice.oncosplice_score import calculate_oncosplice_scores, calculate_legacy_oncosplice_score
@@ -19,6 +31,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         ref_prot, var_prot = ref_proteome[ref_id], var_proteome[var_id]
         if len(ref_prot.protein) < 20:
             continue
+
 
         # if not ref_prot.cons_available:
         #     continue
@@ -206,27 +219,49 @@ def get_insertions_and_deletions(alignment):
     return deletions, insertions, len(aligned_pos)
 
 
+class optimal_alignment_class:
+    def __init__(self, a, b):
+        self.seqA = a
+        self.seqB = b
+
+
 def get_logical_alignment(r, v):
     '''
         get_logical_alignment aims to reduce the number of unique gaps. For the context of dealing with aberrant
         splicing, it is most common that blocks are inserted or deleted and therefore the most likely comparison is
         one in which gaps are minimalized and correspond to those alternative splicing blocks.
     '''
+    if len(r) * len(v) > 100000000:
+        alignments = aligner.align(r, v)
+        if len(alignments) == 1:
+            optimal_alignment = alignments[0]
+        else:
+            # This calculates the number of gaps in each alignment.
+            number_of_gaps = [re.sub('-+', '-', al[0, :]).count('-') + re.sub('-+', '-', al[1, :]).count('-') for al in
+                              alignments]
+            optimal_alignment = alignments[number_of_gaps.index(min(number_of_gaps))]
 
-    alignments = pairwise2.align.globalms(r, v, 1, -1, -3, 0, penalize_end_gaps=(True, False))
+        num_insertions = re.sub('-+', '-', optimal_alignment[0, :]).count('-')
+        num_deletions = re.sub('-+', '-', optimal_alignment[1, :]).count('-')
 
-    if len(alignments) == 1:
-        optimal_alignment = alignments[0]
+        print(optimal_alignment)
+        optimal_alignment = optimal_alignment_class(optimal_alignment[0, :], optimal_alignment[1, :])
+
     else:
-        # This calculates the number of gaps in each alignment.
-        number_of_gaps = [re.sub('-+', '-', al.seqA).count('-') + re.sub('-+', '-', al.seqB).count('-') for al in
-                          alignments]
-        optimal_alignment = alignments[number_of_gaps.index(min(number_of_gaps))]
+        alignments = pairwise2.align.globalms(r, v, 1, -1, -3, 0, penalize_end_gaps=(True, False))
 
-    num_insertions = re.sub('-+', '-', optimal_alignment.seqA).count('-')
-    num_deletions = re.sub('-+', '-', optimal_alignment.seqB).count('-')
+        if len(alignments) == 1:
+            optimal_alignment = alignments[0]
+        else:
+            # This calculates the number of gaps in each alignment.
+            number_of_gaps = [re.sub('-+', '-', al.seqA).count('-') + re.sub('-+', '-', al.seqB).count('-') for al in
+                              alignments]
+            optimal_alignment = alignments[number_of_gaps.index(min(number_of_gaps))]
 
-    print(format_alignment(*optimal_alignment))
+        num_insertions = re.sub('-+', '-', optimal_alignment.seqA).count('-')
+        num_deletions = re.sub('-+', '-', optimal_alignment.seqB).count('-')
+
+        # print(format_alignment(*optimal_alignment))
     # We return the alignment with the smallest number of gaps.
     return optimal_alignment, num_insertions, num_deletions
 

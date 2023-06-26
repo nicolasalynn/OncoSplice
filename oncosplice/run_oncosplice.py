@@ -2,7 +2,7 @@ import shutil
 import os
 import pandas as pd
 import numpy as np
-from geney import unload_json, parse_in_args, get_correct_gene_file
+from geney import unload_json, parse_in_args, get_correct_gene_file, append_line
 from oncosplice import oncosplice_setup
 from oncosplice.spliceai_utils import find_missplicing_spliceai_adaptor
 from oncosplice.Gene import AnnotatedGene
@@ -25,6 +25,9 @@ def main(mut_id, sai_threshold=0.25, min_coverage=2500, force=False, save_flag=T
         print(f'No annotations for gene: {input.gene}...')
         return pd.DataFrame()
 
+    if len(input.file_identifier) > 70:
+        append_line(oncosplice_setup['failed_mut_path'], mut_id)
+        return pd.DataFrame()
 
     missplicing = find_missplicing_spliceai_adaptor(input=input, sai_threshold=sai_threshold, min_coverage=min_coverage, force=force, save_flag=save_flag)
     print(f'>> Processing: {input}')
@@ -41,6 +44,11 @@ def main(mut_id, sai_threshold=0.25, min_coverage=2500, force=False, save_flag=T
     report = pd.merge(report, reference_gene.tranex_tpm, on=['ensembl_transcript_id'], how='left')
     return report
 
+def run_pairwise_and_constituents(epistasis):
+    re = main(epistasis)
+    r1 = main(epistasis.split('|')[0])
+    r2 = main(epistasis.split('|')[1])
+    return [re, r1, r2]
 
 def calculate_final_score(file='', df=None):
     if file:

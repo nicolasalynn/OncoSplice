@@ -1,6 +1,9 @@
 from geney import is_monotonic
 class EpistaticSet:
     def __init__(self, epistatic_set):
+        epistatic_set = {int(m.split(':')[2]): m for m in epistatic_set.split('|')}
+        epistatic_set = {k: v for k, v in sorted(epistatic_set.items())}
+        epistati_set = '|'.join(epistatic_set.values())
         self.mut_id = epistatic_set
         self.variants = [Mutation(m) for m in self.mut_id.split('|')]
         self.start = self.variants[0].start
@@ -9,7 +12,7 @@ class EpistaticSet:
         self.alt = ','.join([m.alt for m in self.variants])
         self.gene = self.variants[0].gene
         self.chrom = self.variants[0].chrom.strip('chr')
-        self.file_identifier = ','.join([v.file_identifier for v in self.variants])
+        self.file_identifier = f'{self.gene}_{self.chrom}' + '_' + '_'.join([v.file_identifier_short for v in self.variants])
 
     def __str__(self):
         return '|'.join([m.mut_id for m in self.variants])
@@ -21,7 +24,6 @@ class EpistaticSet:
 class Mutation:
     def __init__(self, mid):
         self.mut_id = mid
-        self.file_identifier = self.mut_id.replace(':', '_')
 
         gene, chrom, pos, ref, alt = mid.split(':')
         self.gene = gene
@@ -40,6 +42,9 @@ class Mutation:
             self.vartype = 'INS'
         else:
             self.vartype = 'INDEL'
+
+        self.file_identifier = self.mut_id.replace(':', '_')
+        self.file_identifier_short = f'{self.start}_{self.ref}_{self.alt}'
 
     def __str__(self):
         return self.mut_id
