@@ -23,11 +23,7 @@ def main(mut_id, sai_threshold=0.25, min_coverage=2500, force=False, save_flag=T
     annot_file = get_correct_gene_file(input.gene, target_directory=oncosplice_setup['MRNA_PATH'])
     if not annot_file:
         print(f'No annotations for gene: {input.gene}...')
-        return pd.DataFrame()
-
-    if len(input.file_identifier) > 70:
-        append_line(oncosplice_setup['failed_mut_path'], mut_id)
-        return pd.DataFrame()
+        return pd.DataFrame(), {}
 
     missplicing = find_missplicing_spliceai_adaptor(input=input, sai_threshold=sai_threshold, min_coverage=min_coverage, force=force, save_flag=save_flag)
     print(f'>> Processing: {input}')
@@ -39,17 +35,20 @@ def main(mut_id, sai_threshold=0.25, min_coverage=2500, force=False, save_flag=T
     report = generate_report(ref_proteome, var_proteome, missplicing, input)
 
     if report.empty:
-        return report
+        return report, missplicing
 
     report = pd.merge(report, reference_gene.tranex_tpm, on=['ensembl_transcript_id'], how='left')
     return report, missplicing
 
 def run_pairwise_and_constituents(epistasis):
-    m1, m2 = epistasis.split('|')
+    mut1, mut2 = epistasis.split('|')
     data = {}
-    data[epistasis], me = main(epistasis)
-    data[m1], m1 = main(m1)
-    data[m2], m2 = main(m2)
+    oe, me = main(epistasis)
+    o1, m1 = main(mut1)
+    o2, m2 = main(mut2)
+    data[epistasis] = calculate_final_score(df=oe)
+    data[mut1] = calculate_final_score(df=o1)
+    data[mut2] = calculate_final_score(df=o2)
     data['m1_vs_me'], _ = check_splicing_difference(me, m1, 0.4)
     data['m2_vs_me'], _ = check_splicing_difference(me, m2, 0.4)
     return data
