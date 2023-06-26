@@ -203,7 +203,7 @@ def apply_sai_threshold(splicing_dict, threshold):
         new_dict[event] = {k: v for k, v in details.items() if abs(v['delta']) >= threshold}
         if new_dict[event]:
             flag=True
-    return new_dict, flag
+    return new_dict
 
 
 def find_spliceai(input, sai_threshold=0.4):
