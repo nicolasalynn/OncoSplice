@@ -29,6 +29,10 @@ class Mutation:
         self.gene = gene
         self.chrom = chrom.strip('chr')
         self.start = int(pos)
+
+        self.file_identifier = self.mut_id.replace(':', '_')
+        self.file_identifier_short = f'{self.start}_{ref}_{alt}'
+
         self.ref = ref if ref != '-' else ''
         self.alt = alt if alt != '-' else ''
 
@@ -42,9 +46,6 @@ class Mutation:
             self.vartype = 'INS'
         else:
             self.vartype = 'INDEL'
-
-        self.file_identifier = self.mut_id.replace(':', '_')
-        self.file_identifier_short = f'{self.start}_{self.ref}_{self.alt}'
 
     def __str__(self):
         return self.mut_id
