@@ -45,10 +45,12 @@ def main(mut_id, sai_threshold=0.25, min_coverage=2500, force=False, save_flag=T
     return report
 
 def run_pairwise_and_constituents(epistasis):
-    re = main(epistasis)
-    r1 = main(epistasis.split('|')[0])
-    r2 = main(epistasis.split('|')[1])
-    return [re, r1, r2]
+    m1, m2 = epistasis.split('|')
+    data = {}
+    data[epistasis] = main(epistasis)
+    data[m1] = main(m1)
+    data[m2] = main(m2)
+    return data
 
 def calculate_final_score(file='', df=None):
     if file:
