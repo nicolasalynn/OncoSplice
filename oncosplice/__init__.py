@@ -16,7 +16,9 @@ if sys.platform != 'darwin':
         'MRNA_PATH': Path('/tamir2/nicolaslynn/data/genbank/mrna_database/mRNAs/protein_coding'),
         'CONS_PATH': Path('/tamir1/nicolaslynn/data/Conservation/data'),
         'MISSPLICING_PATH': Path('/tamir2/nicolaslynn/experimental_data/variant_missplicing'),
-        'TRANEX_PATH': Path('/tamir2/nicolaslynn/data/HumanProteinAtlas/tranex_sum_tpm_database/')
+        'TRANEX_PATH': Path('/tamir2/nicolaslynn/data/HumanProteinAtlas/tranex_sum_tpm_database/'),
+        'failed_mut_path': Path('/tamir2/nicolaslynn/temp/failed_oncosplice_mutations.txt')
+
     })
 
 
@@ -28,5 +30,6 @@ else:
         'HOME': False,
         'CHROM_SOURCE': Path('/Users/nl/Documents/data/Genomes/Human/human_hg38/Chromosome'),
         'MRNA_PATH': Path('/Users/nl/Documents/phd/data/ensembl/mRNAs/protein_coding'),
+        # 'failed_mut_path': Path('/')
         # 'CONS_PATH': Path('/tamir1/nicolaslynn/data/Conservation/data'),
     })
