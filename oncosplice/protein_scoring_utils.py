@@ -16,8 +16,6 @@ aligner.extend_gap_score = 0
 aligner.target_end_gap_score = 0
 aligner.query_end_gap_score = 0.0
 
-alignments = pairwise2.align.globalms(r, v, 1, -1, -3, 0, penalize_end_gaps=(True, False))
-
 from oncosplice.variant_utils import Mutation, EpistaticSet
 from oncosplice.oncosplice_score import calculate_oncosplice_scores, calculate_legacy_oncosplice_score
 
