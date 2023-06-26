@@ -3,7 +3,7 @@ class EpistaticSet:
     def __init__(self, epistatic_set):
         epistatic_set = {int(m.split(':')[2]): m for m in epistatic_set.split('|')}
         epistatic_set = {k: v for k, v in sorted(epistatic_set.items())}
-        epistati_set = '|'.join(epistatic_set.values())
+        epistatic_set = '|'.join(epistatic_set.values())
         self.mut_id = epistatic_set
         self.variants = [Mutation(m) for m in self.mut_id.split('|')]
         self.start = self.variants[0].start
