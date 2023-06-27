@@ -76,6 +76,8 @@ def generate_mut_variant(seq: str, indices: list, mut: Mutation):
     else:
         temp_indices = [indices[indices.index(mut.start)] + v / 1000 for v in list(range(1, len(mut.alt)+1))]
 
+    print(f'mutation: {mut}')
+    print(f"New Indiced: {temp_indices}")
     new_indices = indices[:rel_start] + temp_indices + indices[rel_end:]
     new_seq = seq[:rel_start] + mut.alt + seq[rel_end:]
 
