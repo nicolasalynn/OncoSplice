@@ -55,8 +55,14 @@ def run_pairwise_and_constituents(epistasis):
     data[epistasis] = calculate_final_score(df=oe)
     data[mut1] = calculate_final_score(df=o1)
     data[mut2] = calculate_final_score(df=o2)
-    data['m1_vs_me'], _ = check_splicing_difference(me, m1, 0.4)
-    data['m2_vs_me'], _ = check_splicing_difference(me, m2, 0.4)
+    if me and m1:
+        data['m1_vs_me'], _ = check_splicing_difference(me, m1, 0.4)
+    else:
+        data['m1_vs_me'] = False
+    if me and m2:
+        data['m2_vs_me'], _ = check_splicing_difference(me, m2, 0.4)
+    else:
+        data['m2_vs_me'] = False
     return data
 
 def calculate_final_score(file='', df=None):
