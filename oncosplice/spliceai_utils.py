@@ -198,11 +198,8 @@ def find_missplicing_spliceai_adaptor(input, sai_mrg_context=5000, min_coverage=
 
 def apply_sai_threshold(splicing_dict, threshold):
     new_dict = {}
-    flag = False
     for event, details in splicing_dict.items():
         new_dict[event] = {k: v for k, v in details.items() if abs(v['delta']) >= threshold}
-        if new_dict[event]:
-            flag=True
     return new_dict
 
 def check_splicing_difference(missplicing1, missplicing2, threshold):
@@ -230,6 +227,12 @@ def check_splicing_difference(missplicing1, missplicing2, threshold):
         true_differences[event] = td
     return flag, true_differences
 
+
+def missplicing_bool(splicing_dict, threshold):
+    for event, details in splicing_dict.items():
+        if details:
+            return True
+    return False
 
 def find_spliceai(input, sai_threshold=0.4):
     splicingdb_path = oncosplice_setup['MISSPLICING_PATH'] / f'spliceai_epistatic'

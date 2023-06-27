@@ -6,6 +6,9 @@ import pandas as pd
 import re
 import json
 from oncosplice import oncosplice_setup
+from oncosplice.variant_utils import Mutation, EpistaticSet
+from oncosplice.oncosplice_score import calculate_oncosplice_scores, calculate_legacy_oncosplice_score
+from oncosplice.spliceai_utils import missplicing_bool
 
 aligner = Align.PairwiseAligner()
 aligner.mode = 'global'
@@ -14,14 +17,10 @@ aligner.mismatch_score = -1
 aligner.open_gap_score = -3
 aligner.extend_gap_score = 0
 aligner.target_end_gap_score = 0
-aligner.query_end_gap_score = 0.0
-
-from oncosplice.variant_utils import Mutation, EpistaticSet
-from oncosplice.oncosplice_score import calculate_oncosplice_scores, calculate_legacy_oncosplice_score
+aligner.query_end_gap_score = 0
 
 def generate_report(ref_proteome, var_proteome, missplicing, mutation):
     full_report = []
-
     for (ref_id, var_id) in [(ref_id, var_id) for ref_id in ref_proteome.keys() for var_id in var_proteome.keys() if
                              ref_id == var_id.split('-')[0]]:
 
@@ -29,7 +28,6 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         ref_prot, var_prot = ref_proteome[ref_id], var_proteome[var_id]
         if len(ref_prot.protein) < 20:
             continue
-
 
         # if not ref_prot.cons_available:
         #     continue
@@ -85,10 +83,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['ensembl_transcript_id'] = ref_prot.transcript_id.split('.')[0]
         report['isoform_id'] = var_prot.transcript_id.split('-')[-1]
         report['full_missplicing'] = json.dumps(missplicing)
-        report['missplicing_flag'] = any([missplicing.get('missed_acceptors', {}),
-                                          missplicing.get('missed_donors', {}),
-                                          missplicing.get('discovered_donors', {}),
-                                          missplicing.get('discovered_acceptors', {})])
+        # report['missplicing_flag'] = missplicing_bool(missplicing)
         report['isoform_prevalence'] = var_prot.penetrance
         report['no_start_codon_found'] = no_start_codon
         report['missplicing_event'] = description
@@ -264,64 +259,63 @@ def get_logical_alignment(r, v):
     return optimal_alignment, num_insertions, num_deletions
 
 
-def smooth_cons_scores(cons_scores, W):
-    PADDING = W // 2
-    new_scores = []
-    for i in range(len(cons_scores)):
-        if i < PADDING:
-            temp_vec = cons_scores[:i + PADDING + 1]
-        elif i > len(cons_scores) - PADDING:
-            temp_vec = cons_scores[i - PADDING:]
-        else:
-            temp_vec = cons_scores[i - PADDING:i + PADDING + 1]
-        len_temp_vec = len(temp_vec)
-        new_scores.append(sum(temp_vec) / len_temp_vec)
-    new_scores = np.array(new_scores) / max(new_scores)
-    assert len(new_scores) == len(
-        cons_scores), f'Smoothed scores are not same length... {len(cons_scores)}, {len(new_scores)}'
-    # assert round(sum(new_scores), 10) == 1, f'New score sum != to 1: {sum(new_scores)}'
-    # fig = tpl.figure()
-    # x = np.arange(0, len(new_scores))
-    # fig.plot(x, new_scores, width=60, height=20)
-    # fig.show()
-    return new_scores
+# def smooth_cons_scores(cons_scores, W):
+#     PADDING = W // 2
+#     new_scores = []
+#     for i in range(len(cons_scores)):
+#         if i < PADDING:
+#             temp_vec = cons_scores[:i + PADDING + 1]
+#         elif i > len(cons_scores) - PADDING:
+#             temp_vec = cons_scores[i - PADDING:]
+#         else:
+#             temp_vec = cons_scores[i - PADDING:i + PADDING + 1]
+#         len_temp_vec = len(temp_vec)
+#         new_scores.append(sum(temp_vec) / len_temp_vec)
+#     new_scores = np.array(new_scores) / max(new_scores)
+#     assert len(new_scores) == len(
+#         cons_scores), f'Smoothed scores are not same length... {len(cons_scores)}, {len(new_scores)}'
+#     # assert round(sum(new_scores), 10) == 1, f'New score sum != to 1: {sum(new_scores)}'
+#     # fig = tpl.figure()
+#     # x = np.arange(0, len(new_scores))
+#     # fig.plot(x, new_scores, width=60, height=20)
+#     # fig.show()
+#     return new_scores
 
-
-def calculate_del_penalty(deleted_domains, cons_scores, W):
-    penalty = np.zeros(cons_scores.size)
-    for dp_pos, dp_seq in deleted_domains.items():
-        dw = max(1.0, len(dp_seq) / W)
-        penalty[dp_pos:dp_pos + len(dp_seq) + 1] = cons_scores[dp_pos:dp_pos + len(dp_seq) + 1] * dw
-    return penalty
-
-
-def calculate_ins_penalty(inserted_domains, cons_scores, W):
-    penalty = np.zeros(cons_scores.size)
-    for ip_pos, ip_seq in inserted_domains.items():
-        # reach = min(W, len(ip_seq))
-        iw = max(1.0, len(ip_seq) / W)
-        # penalty[ip_pos] = iw*cons_scores[ip_pos]
-        # for ipv in list(range(ip_pos-reach, ip_pos + reach+1)):
-        for ipv in [ip_pos, ip_pos + 1]:
-            if ipv > len(cons_scores) - 1:
-                pass
-            elif ipv < 0:
-                pass
-            else:
-                penalty[ipv] = iw * cons_scores[ipv] + penalty[ipv]
-    return penalty
-
-
-def combine_ins_and_del_scores(d_cons_scores, i_cons_scores, W):
-    PADDING = W // 2
-    combined_scores = [a + b for a, b in list(zip(d_cons_scores, i_cons_scores))]
-    penalty = []
-
-    for i in range(PADDING, len(combined_scores) - PADDING):
-        penalty.append(sum(combined_scores[i - PADDING:i + PADDING + 1]))
-
-    return max(penalty)
 #
+# def calculate_del_penalty(deleted_domains, cons_scores, W):
+#     penalty = np.zeros(cons_scores.size)
+#     for dp_pos, dp_seq in deleted_domains.items():
+#         dw = max(1.0, len(dp_seq) / W)
+#         penalty[dp_pos:dp_pos + len(dp_seq) + 1] = cons_scores[dp_pos:dp_pos + len(dp_seq) + 1] * dw
+#     return penalty
+#
+#
+# def calculate_ins_penalty(inserted_domains, cons_scores, W):
+#     penalty = np.zeros(cons_scores.size)
+#     for ip_pos, ip_seq in inserted_domains.items():
+#         # reach = min(W, len(ip_seq))
+#         iw = max(1.0, len(ip_seq) / W)
+#         # penalty[ip_pos] = iw*cons_scores[ip_pos]
+#         # for ipv in list(range(ip_pos-reach, ip_pos + reach+1)):
+#         for ipv in [ip_pos, ip_pos + 1]:
+#             if ipv > len(cons_scores) - 1:
+#                 pass
+#             elif ipv < 0:
+#                 pass
+#             else:
+#                 penalty[ipv] = iw * cons_scores[ipv] + penalty[ipv]
+#     return penalty
+#
+# def combine_ins_and_del_scores(d_cons_scores, i_cons_scores, W):
+#     PADDING = W // 2
+#     combined_scores = [a + b for a, b in list(zip(d_cons_scores, i_cons_scores))]
+#     penalty = []
+#
+#     for i in range(PADDING, len(combined_scores) - PADDING):
+#         penalty.append(sum(combined_scores[i - PADDING:i + PADDING + 1]))
+#
+#     return max(penalty)
+# #
 
 # def find_unmodified_positions(lp, deletions, insertions, W):
 #     unmodified_positions = list(range(lp))

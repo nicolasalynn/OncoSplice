@@ -1,11 +1,61 @@
 from geney import is_monotonic
+import numpy as np
+def check_pairwise_variant_compatibility(mut1, mut2):
+    if mut1 == mut2:
+        return True
+    if mut1.vartype == 'DEL':
+        deleted_positions1 = list(range(mut1.start, mut1.start + len(mut1.ref)))
+    else:
+        deleted_positions1 = []
+    if mut2.vartype == 'DEL':
+        deleted_positions2 = list(range(mut2.start, mut2.start + len(mut2.ref)))
+    else:
+        deleted_positions2 = []
+
+    if mut1.vartype == 'SNP':
+        snp_pos1 = mut1.start
+    else:
+        snp_pos1 = 0
+    if mut2.vartype == 'SNP':
+        snp_pos2 = mut2.start
+    else:
+        snp_pos2 = 0
+
+    if mut1.vartype == 'INS':
+        ins_pos1 = mut1.start
+    else:
+        ins_pos1 = 0
+    if mut2.vartype == 'INS':
+        ins_pos2 = mut2.start
+    else:
+        ins_pos2 = 0
+
+    if snp_pos1 == snp_pos2 != 0:
+        return False
+
+    if snp_pos1 in deleted_positions2 or snp_pos2 in deleted_positions1:
+        return False
+
+    if ins_pos1 == ins_pos2 != 0:
+        return False
+
+    if len(np.intersect1d(deleted_positions1, deleted_positions2)) > 0:
+        return False
+
+    return True
+def check_variant_compatibility(mutations):
+    return all([check_pairwise_variant_compatibility(mut1, mut2) for mut1 in mutations for mut2 in mutations])
+
+
 class EpistaticSet:
     def __init__(self, epistatic_set):
-        epistatic_set = {int(m.split(':')[2]): m for m in epistatic_set.split('|')}
-        epistatic_set = {k: v for k, v in sorted(epistatic_set.items())}
-        epistatic_set = '|'.join(epistatic_set.values())
+        self.variants = sorted([Mutation(m) for m in self.epistatic_set.split('|')])
+        # epistatic_set = {int(m.split(':')[2]): m for m in epistatic_set.split('|')}
+        # epistatic_set = {k: v for k, v in sorted(epistatic_set.items())}
+        # epistatic_set = '|'.join(epistatic_set.values())
+        self.congruent_epistasis = check_variant_compatibility(self.variants)
         self.mut_id = epistatic_set
-        self.variants = [Mutation(m) for m in self.mut_id.split('|')]
+        # self.variants = [Mutation(m) for m in self.mut_id.split('|')]
         self.start = self.variants[0].start
         self.positions = [v.start for v in self.variants]
         self.ref = ','.join([m.ref for m in self.variants])
@@ -52,6 +102,11 @@ class Mutation:
 
     def __repr__(self):
         return self.mut_id
+
+    def __eq__(self, other):
+        return all([self.chrom == other.chrom, self.start == other.start, self.ref == other.ref, self.alt == other.alt])
+    def __lt__(self, other):
+        return self.start < other.start
 
 
 def generate_mut_variant(seq: str, indices: list, mut: Mutation):

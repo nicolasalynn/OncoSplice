@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from geney import unload_json, parse_in_args, get_correct_gene_file, append_line
 from oncosplice import oncosplice_setup
-from oncosplice.spliceai_utils import find_missplicing_spliceai_adaptor, check_splicing_difference
+from oncosplice.spliceai_utils import find_missplicing_spliceai_adaptor, check_splicing_difference, missplicing_bool, apply_sai_threshold
 from oncosplice.Gene import AnnotatedGene
 from oncosplice.variant_utils import EpistaticSet, Mutation
 from oncosplice.protein_scoring_utils import generate_report
@@ -15,8 +15,8 @@ sample_mut_id = 'KRAS:12:25227343:G:T'
 
 def main(mut_id, sai_threshold=0.25, min_coverage=2500, force=False, save_flag=True, show_output=False):
     print(f'>> Processing: {mut_id}')
-
     oncosplice_setup['show_output'] = show_output
+    oncosplice_setup['sai_threshold'] = sai_threshold
     if '|' in mut_id:
         input = EpistaticSet(mut_id)
     else:
@@ -32,13 +32,14 @@ def main(mut_id, sai_threshold=0.25, min_coverage=2500, force=False, save_flag=T
             print("Conflicting variants.")
             return pd.DataFrame(), {}
 
-    missplicing = find_missplicing_spliceai_adaptor(input=input, sai_threshold=sai_threshold, min_coverage=min_coverage, force=force, save_flag=save_flag)
-    print(f'\tMissplicing: {missplicing}')
+    missplicing = find_missplicing_spliceai_adaptor(input=input, sai_threshold=0.1, min_coverage=min_coverage, force=force, save_flag=save_flag)
+    cutoff_missplicing = apply_sai_threshold(missplicing, sai_threshold)
+    print(f'\tMissplicing: {cutoff_missplicing}')
 
     reference_gene = AnnotatedGene(annot_file)
-    variant_gene = reference_gene.create_gene_isoform(mut_ids=mut_id, aberrant_splicing=missplicing)
+    variant_gene = reference_gene.create_gene_isoform(mut_ids=mut_id, aberrant_splicing=cutoff_missplicing)
     ref_proteome, var_proteome = reference_gene.develop_proteome(), variant_gene.develop_proteome()
-    report = generate_report(ref_proteome, var_proteome, missplicing, input)
+    report = generate_report(ref_proteome, var_proteome, cutoff_missplicing, input)
 
     if report.empty:
         return report, missplicing
@@ -94,6 +95,7 @@ def calculate_final_score(file='', df=None):
     tracker = {}
     tracker['mut_id'] = df.iloc[0].mut_id
     tracker['highest_splicing_penetrance'] = highest_ms
+    tracker['interesting'] = missplicing_bool(missplicing, oncosplice_setup['sai_threshold'])
     tracker['missplicing'] = json.dumps(missplicing)
     tracker['legacy_oncosplice_score'] = df.groupby('transcript_id').legacy_oncosplice_score.mean().max()
     df['weighted_lof'] = df.oncosplice_score_lof * df.isoform_prevalence
@@ -107,7 +109,3 @@ def calculate_final_score(file='', df=None):
 
 def short_results(mut_id, sai_threshold=0.25):
     return calculate_final_score(main(mut_id, sai_threshold=sai_threshold))
-
-
-# def converter(instr, s):
-#     return np.fromstring(instr[1:-1], count=s, sep=' ')
