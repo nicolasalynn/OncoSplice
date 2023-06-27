@@ -49,7 +49,7 @@ def check_variant_compatibility(mutations):
 
 class EpistaticSet:
     def __init__(self, epistatic_set):
-        self.variants = sorted([Mutation(m) for m in self.epistatic_set.split('|')])
+        self.variants = sorted([Mutation(m) for m in epistatic_set.split('|')])
         # epistatic_set = {int(m.split(':')[2]): m for m in epistatic_set.split('|')}
         # epistatic_set = {k: v for k, v in sorted(epistatic_set.items())}
         # epistatic_set = '|'.join(epistatic_set.values())
