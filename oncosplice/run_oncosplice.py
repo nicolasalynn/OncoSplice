@@ -25,7 +25,7 @@ def main(mut_id, sai_threshold=0.25, min_coverage=2500, force=False, save_flag=T
         print(f'No annotations for gene: {input.gene}...')
         return pd.DataFrame(), {}
 
-    if input.variants[0].start == input.variants[1].start:
+    if isinstance(input, EpistaticSet) and input.variants[0].start == input.variants[1].start:
         print("Conflicting variants.")
         return pd.DataFrame(), {}
 
