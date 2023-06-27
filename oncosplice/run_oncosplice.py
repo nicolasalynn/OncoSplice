@@ -14,6 +14,8 @@ from geney.general.performance_utils import check_ti
 sample_mut_id = 'KRAS:12:25227343:G:T'
 
 def main(mut_id, sai_threshold=0.25, min_coverage=2500, force=False, save_flag=True, show_output=False):
+    print(f'>> Processing: {input}')
+
     oncosplice_setup['show_output'] = show_output
     if '|' in mut_id:
         input = EpistaticSet(mut_id)
@@ -30,7 +32,6 @@ def main(mut_id, sai_threshold=0.25, min_coverage=2500, force=False, save_flag=T
         return pd.DataFrame(), {}
 
     missplicing = find_missplicing_spliceai_adaptor(input=input, sai_threshold=sai_threshold, min_coverage=min_coverage, force=force, save_flag=save_flag)
-    print(f'>> Processing: {input}')
     print(f'\tMissplicing: {missplicing}')
 
     reference_gene = AnnotatedGene(annot_file)
