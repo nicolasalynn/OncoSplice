@@ -28,8 +28,7 @@ def main(mut_id, sai_threshold=0.25, min_coverage=2500, force=False, save_flag=T
         return pd.DataFrame(), {}
 
     if isinstance(input, EpistaticSet):
-        print(input.variants)
-        if input.variants[0].start == input.variants[1].start:
+        if len(input.variants) == 1:
             print("Conflicting variants.")
             return pd.DataFrame(), {}
 
