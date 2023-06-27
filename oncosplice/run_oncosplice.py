@@ -14,7 +14,7 @@ from geney.general.performance_utils import check_ti
 sample_mut_id = 'KRAS:12:25227343:G:T'
 
 def main(mut_id, sai_threshold=0.25, min_coverage=2500, force=False, save_flag=True, show_output=False):
-    print(f'>> Processing: {input}')
+    print(f'>> Processing: {mut_id}')
 
     oncosplice_setup['show_output'] = show_output
     if '|' in mut_id:
