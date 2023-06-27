@@ -25,6 +25,10 @@ def main(mut_id, sai_threshold=0.25, min_coverage=2500, force=False, save_flag=T
         print(f'No annotations for gene: {input.gene}...')
         return pd.DataFrame(), {}
 
+    if input.variants[0].pos == input.variants[1].pos:
+        print("Conflicting variants.")
+        return pd.DataFrame(), {}
+
     missplicing = find_missplicing_spliceai_adaptor(input=input, sai_threshold=sai_threshold, min_coverage=min_coverage, force=force, save_flag=save_flag)
     print(f'>> Processing: {input}')
     print(f'\tMissplicing: {missplicing}')

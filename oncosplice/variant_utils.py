@@ -76,13 +76,13 @@ def generate_mut_variant(seq: str, indices: list, mut: Mutation):
     else:
         temp_indices = [indices[indices.index(mut.start)] + v / 1000 for v in list(range(1, len(mut.alt)+1))]
 
-    print(f'mutation: {mut}')
-    print(f"New Indiced: {temp_indices}")
+    # print(f'mutation: {mut}')
+    # print(f"New Indiced: {temp_indices}")
     new_indices = indices[:rel_start] + temp_indices + indices[rel_end:]
     new_seq = seq[:rel_start] + mut.alt + seq[rel_end:]
 
     assert len(new_seq) == len(new_indices), f'Error in variant modification: {mut}, {len(new_seq)}, {len(new_indices)}'
-    assert is_monotonic(list(filter((-1).__ne__, new_indices))), f'Mut indices are not monotonic. {new_indices}'
+    assert is_monotonic(list(filter((-1).__ne__, new_indices))), f'Mut indices are not monotonic.'
     return new_seq, new_indices, True, consensus_allele
 
 
