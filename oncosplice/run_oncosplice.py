@@ -68,6 +68,10 @@ def calculate_final_score(file='', df=None):
         if df.empty:
             return pd.Series(dtype='float64')
 
+    else:
+        if df.empty:
+            return pd.Series(dtype='float64')
+
     if 'transcipt_id' in df.columns:
         df.rename(columns={'transcipt_id': 'transcript_id'}, inplace=True)
 
