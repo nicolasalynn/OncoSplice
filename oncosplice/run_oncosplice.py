@@ -19,6 +19,9 @@ def main(mut_id, sai_threshold=0.25, min_coverage=2500, force=False, save_flag=T
     oncosplice_setup['sai_threshold'] = sai_threshold
     if '|' in mut_id:
         input = EpistaticSet(mut_id)
+        if not input.congruent_epistasis:
+            print(f'Not congruent epistatic set: {input}...')
+            return pd.DataFrame(), {}
     else:
         input = Mutation(mut_id)
 
