@@ -49,57 +49,30 @@ class mature_mRNA(pre_mRNA):
                 2. the donors and acceptors are sorted in a staggering manner
                 3. the first donor is larger (or smaller) than the first acceptor depending on rev or not.
         """
-        check1 = len(self.donors) == len(self.acceptors)
+        assert len(self.donors) == len(self.acceptors), "Inbalance in number of donors and acceptors (must be equal)."
 
         if self.rev:
-            check2 = all([self.acceptors[i - 1] > self.donors[i] > self.acceptors[i]
-                          for i in range(1, len(self.donors))])
+            assert all([self.acceptors[i - 1] > self.donors[i] > self.acceptors[i]
+                          for i in range(1, len(self.donors))]), "Order of acceptors and donors is nonsense."
         else:
-            check2 = all([self.acceptors[i - 1] < self.donors[i] < self.acceptors[i]
-                          for i in range(1, len(self.donors))])
+            assert all([self.acceptors[i - 1] < self.donors[i] < self.acceptors[i]
+                          for i in range(1, len(self.donors))]), "Order of acceptors and donors is nonsense."
 
-        check3 = all([d in self.pre_indices for d in self.donors + self.acceptors])
-        check4 = self.transcript_start in self.pre_indices and self.transcript_end in self.pre_indices
-        check5 = len([v for v in self.donors if v in self.acceptors]) == 0
-        if all([check1, check2, check3, check4, check5]):
-            return True
-
-        else:
-            print(f'Cannot generate mature mRNA.\n')
-            if not check1:
-                print(f"No one-to-one pairing. Donors: {len(self.donors)}, Acceptors: {len(self.acceptors)}")
-            if not check2:
-                print(f"Donors/acceptor arrangement nonsensical: {self.donors}, {self.acceptors}")
-            if not check3:
-                print(f"Donors({[v for v in self.donors if v not in self.pre_indices]}),"
-                      f" Acceptors({[v for v in self.acceptors if v not in self.pre_indices]}) "
-                      f"missing from pre_mRNA transcript indices.")
-            if not check4:
-                print(f"Transcript Start ({self.transcript_start}) "
-                      f"available: {self.transcript_start in self.pre_indices}")
-                print(f"Transcript End ({self.transcript_end}) "
-                      f"available: {self.transcript_end in self.pre_indices}")
-            if not check5:
-                print(f"Acceptor/Donor overlap: {[v for v in self.donors if v in self.acceptors]}")
-            return False
+        assert all([d in self.pre_indices for d in self.donors + self.acceptors]), "Donors and/or acceptors missplicing from indices."
+        assert self.transcript_start in self.pre_indices and self.transcript_end in self.pre_indices, "Transcript start/end missing in indices."
+        assert len([v for v in self.donors if v in self.acceptors]) == 0, "Overlap in acceptors and donors."
+        return True
 
     def __generate_mature_mrna(self):
         if self.__valid_mature_mrna():
-
             mature_mrna, mature_indices = '', []
             for i, j in self.exon_boundaries():
-                if i == self.transcript_start and i not in self.pre_indices:
-                    print("ERROR 1 mature_mRNA")
-                    i = self.pre_indices[0]
-                if j == self.transcript_end and i not in self.pre_indices:
-                    print("ERROR 2 mature_mRNA")
-                    j = self.pre_indices[-1]
-
                 rel_start, rel_end = self.pre_indices.index(i), self.pre_indices.index(j)
                 mature_mrna += self.pre_mrna[rel_start:rel_end + 1]
                 mature_indices.extend(self.pre_indices[rel_start:rel_end + 1])
-
             self.mature_mrna, self.mature_indices = mature_mrna, mature_indices
+        else:
+            print("Invalid mature mRNA. Check annotations, or if variant has been incorporated, check that it does not delete transcript start, end or splice sites.")
         return self
 
     def exon_boundaries(self):

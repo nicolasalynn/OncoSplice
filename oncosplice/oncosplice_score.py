@@ -18,10 +18,8 @@ def find_unmodified_positions(lp, deletions, insertions):
     for pos, deletion in deletions.items():
         unmodified_positions[pos:pos+len(deletion)] = 0
 
-    # max_reach = 32 #W // 2
     for pos, insertion in insertions.items():
         reach = min(len(insertion) // 2, 38)
-        # temp = [reach / i for i in range(1, reach//2)]
         unmodified_positions[pos-reach:pos+reach+1] = 0
 
     return unmodified_positions
@@ -37,12 +35,7 @@ def calculate_oncosplice_scores(deletions, insertions, cons_vec, W):
         W = 76
     functional_loss_vector_76 = transform_conservation_vector(cons_vec, W=W) * (1 - unmodified_positions)
     functional_loss_vector_76 = sum_conv(functional_loss_vector_76, W=W)
-
     return {'cons_vec': np.array2string(np.around(cons_vec), 3), 'oncosplice_score_lof': max(functional_loss_vector_76), 'oncosplice_score_gof': max(functional_loss_vector_5)}
-
-
-    # return {'cons_vec': np.array2string(np.around(cons_vec), 3), 'lof_score': abs(min(0, s.min())), 'gof_score': max(0, s.max()), 'oncosplice_score': sum(stemp)/len(cons_vec)}
-
 
 ##### LEGACY ONCOSPLICE CALCS
 def legacy_smooth_cons_scores(cons_scores, W):

@@ -19,7 +19,7 @@ aligner.extend_gap_score = 0
 aligner.target_end_gap_score = 0
 aligner.query_end_gap_score = 0
 
-def generate_report(ref_proteome, var_proteome, missplicing, mutation):
+def generate_report(ref_proteome, var_proteome, missplicing, mutation, cons_only=False):
     full_report = []
     for (ref_id, var_id) in [(ref_id, var_id) for ref_id in ref_proteome.keys() for var_id in var_proteome.keys() if
                              ref_id == var_id.split('-')[0]]:
@@ -29,8 +29,8 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         if len(ref_prot.protein) < 20:
             continue
 
-        # if not ref_prot.cons_available:
-        #     continue
+        if not ref_prot.cons_available and cons_only:
+            continue
 
         no_start_codon = False
         if not var_prot.protein:
@@ -83,7 +83,7 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation):
         report['ensembl_transcript_id'] = ref_prot.transcript_id.split('.')[0]
         report['isoform_id'] = var_prot.transcript_id.split('-')[-1]
         report['full_missplicing'] = json.dumps(missplicing)
-        # report['missplicing_flag'] = missplicing_bool(missplicing)
+        report['missplicing_flag'] = missplicing_bool(missplicing)
         report['isoform_prevalence'] = var_prot.penetrance
         report['no_start_codon_found'] = no_start_codon
         report['missplicing_event'] = description
@@ -224,147 +224,18 @@ def get_logical_alignment(r, v):
         splicing, it is most common that blocks are inserted or deleted and therefore the most likely comparison is
         one in which gaps are minimalized and correspond to those alternative splicing blocks.
     '''
-    if len(r) * len(v) > 1:
-        alignments = aligner.align(r, v)
-        if len(alignments) == 1:
-            optimal_alignment = alignments[0]
-        else:
-            # This calculates the number of gaps in each alignment.
-            number_of_gaps = [re.sub('-+', '-', al[0, :]).count('-') + re.sub('-+', '-', al[1, :]).count('-') for al in
-                              alignments]
-            optimal_alignment = alignments[number_of_gaps.index(min(number_of_gaps))]
-
-        num_insertions = re.sub('-+', '-', optimal_alignment[0, :]).count('-')
-        num_deletions = re.sub('-+', '-', optimal_alignment[1, :]).count('-')
-
-        print(optimal_alignment)
-        optimal_alignment = optimal_alignment_class(optimal_alignment[0, :], optimal_alignment[1, :])
-
+    alignments = aligner.align(r, v)
+    if len(alignments) == 1:
+        optimal_alignment = alignments[0]
     else:
-        alignments = pairwise2.align.globalms(r, v, 1, -1, -3, 0, penalize_end_gaps=(True, False))
+        # This calculates the number of gaps in each alignment.
+        number_of_gaps = [re.sub('-+', '-', al[0, :]).count('-') + re.sub('-+', '-', al[1, :]).count('-') for al in
+                          alignments]
+        optimal_alignment = alignments[number_of_gaps.index(min(number_of_gaps))]
 
-        if len(alignments) == 1:
-            optimal_alignment = alignments[0]
-        else:
-            # This calculates the number of gaps in each alignment.
-            number_of_gaps = [re.sub('-+', '-', al.seqA).count('-') + re.sub('-+', '-', al.seqB).count('-') for al in
-                              alignments]
-            optimal_alignment = alignments[number_of_gaps.index(min(number_of_gaps))]
-
-        num_insertions = re.sub('-+', '-', optimal_alignment.seqA).count('-')
-        num_deletions = re.sub('-+', '-', optimal_alignment.seqB).count('-')
-
-        print(format_alignment(*optimal_alignment))
-    # We return the alignment with the smallest number of gaps.
+    num_insertions = re.sub('-+', '-', optimal_alignment[0, :]).count('-')
+    num_deletions = re.sub('-+', '-', optimal_alignment[1, :]).count('-')
+    print(optimal_alignment)
+    optimal_alignment = optimal_alignment_class(optimal_alignment[0, :], optimal_alignment[1, :])
     return optimal_alignment, num_insertions, num_deletions
 
-
-# def smooth_cons_scores(cons_scores, W):
-#     PADDING = W // 2
-#     new_scores = []
-#     for i in range(len(cons_scores)):
-#         if i < PADDING:
-#             temp_vec = cons_scores[:i + PADDING + 1]
-#         elif i > len(cons_scores) - PADDING:
-#             temp_vec = cons_scores[i - PADDING:]
-#         else:
-#             temp_vec = cons_scores[i - PADDING:i + PADDING + 1]
-#         len_temp_vec = len(temp_vec)
-#         new_scores.append(sum(temp_vec) / len_temp_vec)
-#     new_scores = np.array(new_scores) / max(new_scores)
-#     assert len(new_scores) == len(
-#         cons_scores), f'Smoothed scores are not same length... {len(cons_scores)}, {len(new_scores)}'
-#     # assert round(sum(new_scores), 10) == 1, f'New score sum != to 1: {sum(new_scores)}'
-#     # fig = tpl.figure()
-#     # x = np.arange(0, len(new_scores))
-#     # fig.plot(x, new_scores, width=60, height=20)
-#     # fig.show()
-#     return new_scores
-
-#
-# def calculate_del_penalty(deleted_domains, cons_scores, W):
-#     penalty = np.zeros(cons_scores.size)
-#     for dp_pos, dp_seq in deleted_domains.items():
-#         dw = max(1.0, len(dp_seq) / W)
-#         penalty[dp_pos:dp_pos + len(dp_seq) + 1] = cons_scores[dp_pos:dp_pos + len(dp_seq) + 1] * dw
-#     return penalty
-#
-#
-# def calculate_ins_penalty(inserted_domains, cons_scores, W):
-#     penalty = np.zeros(cons_scores.size)
-#     for ip_pos, ip_seq in inserted_domains.items():
-#         # reach = min(W, len(ip_seq))
-#         iw = max(1.0, len(ip_seq) / W)
-#         # penalty[ip_pos] = iw*cons_scores[ip_pos]
-#         # for ipv in list(range(ip_pos-reach, ip_pos + reach+1)):
-#         for ipv in [ip_pos, ip_pos + 1]:
-#             if ipv > len(cons_scores) - 1:
-#                 pass
-#             elif ipv < 0:
-#                 pass
-#             else:
-#                 penalty[ipv] = iw * cons_scores[ipv] + penalty[ipv]
-#     return penalty
-#
-# def combine_ins_and_del_scores(d_cons_scores, i_cons_scores, W):
-#     PADDING = W // 2
-#     combined_scores = [a + b for a, b in list(zip(d_cons_scores, i_cons_scores))]
-#     penalty = []
-#
-#     for i in range(PADDING, len(combined_scores) - PADDING):
-#         penalty.append(sum(combined_scores[i - PADDING:i + PADDING + 1]))
-#
-#     return max(penalty)
-# #
-
-# def find_unmodified_positions(lp, deletions, insertions, W):
-#     unmodified_positions = list(range(lp))
-#     modified_pos = []
-#     for pos, deletion in deletions.items():
-#         modified_pos.extend(list(range(pos, pos + len(deletion))))
-#
-#     max_reach = W // 2
-#     for pos, insertion in insertions.items():
-#         reach = min(len(insertion) // 2, max_reach)
-#         modified_pos.extend(list(range(pos - reach, pos + reach + 1)))
-#
-#     return [v for v in unmodified_positions if v not in list(set(modified_pos))]
-#
-# def window_matching(unmodified_positions, l_p, W):
-#     alignment_vector = [1 if i in unmodified_positions else 0 for i in range(l_p)]
-#     convolver = np.ones(W)
-#     convolving_length = np.array([min(l_p + W - i, W, i) for i in range(W // 2, l_p + W // 2)])
-#     match_ratios = np.convolve(alignment_vector, convolver, mode='same') / (convolving_length // 2) - 1
-#     return match_ratios
-#
-# def mask_matched_positions(cons_vec, unmodified_positions):
-#     masked_positions = [val for val in list(range(len(cons_vec))) if val in unmodified_positions]
-#     cons_vec[masked_positions] = 0
-#     return cons_vec
-#
-# def window_conv(cons_vec, W):
-#     return np.convole(cons_vec, np.zeros(W), mode='same')
-#
-# def transform_conservation_vector(c, W):
-#     temp_W = W // 4
-#     convolver = np.ones(temp_W)
-#     convolving_length = np.array([min(len(c) + temp_W - i, temp_W, i) for i in range(temp_W // 2, len(c) + temp_W // 2)])
-#     c1 = np.convolve(c, convolver, mode='same') / convolving_length
-#     c2 = -c1 / max(abs(c1))
-#     c3 = 100 ** c2
-#     c_sum = sum(c3)
-#     c_len = len(c3)
-#     c4 = c3 * c_len / c_sum
-#     assert len(c4) == len(c), f'Length of modified conservation not equal.'
-#     # W_max = max(np.convolve(c4, np.ones(W), mode='same'))
-#     return c4, 1 #, W_max
-#
-# def new_oncosplice_scoring(unmodified_positions, cons_vec, W):
-#     cons_vec, _ = transform_conservation_vector(cons_vec, W)
-#     alignment_ratio = window_matching(unmodified_positions, len(cons_vec), W)
-#     functional_loss = mask_matched_positions(cons_vec.copy(), unmodified_positions)
-#     s = alignment_ratio * functional_loss / len(cons_vec)
-#     s = np.convolve(s, np.ones(W), 'same')
-#     return cons_vec, s.min(), s.max(), sum(s)
-#
-#
