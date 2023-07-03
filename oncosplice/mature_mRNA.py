@@ -124,7 +124,7 @@ class mature_mRNA(pre_mRNA):
 
         for k, v in aberrant_splicing.get('missed_acceptors', {}).items():
             if k in exon_starts.keys():
-                exon_starts[k] = v['absolute']
+                exon_starts[k] = max(v['absolute'], 0.001)
 
         exon_starts.update(
             {k: v['absolute'] for k, v in aberrant_splicing.get('discovered_acceptors', {}).items() if lower_range <= k <= upper_range})
@@ -136,12 +136,6 @@ class mature_mRNA(pre_mRNA):
 
         nodes = [s for s in nodes if s.prob > 0]
         nodes.sort(key=lambda x: x.pos, reverse=self.rev)
-
-        # while nodes[0].ss_type == 0:
-        #     nodes = nodes[1:]
-        #
-        # while nodes[-1].ss_type == 1:
-        #     nodes = nodes[:-1]
 
         G = nx.DiGraph()
         G.add_nodes_from([n.pos for n in nodes])
