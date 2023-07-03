@@ -124,7 +124,7 @@ class mature_mRNA(pre_mRNA):
 
         for k, v in aberrant_splicing.get('missed_acceptors', {}).items():
             if k in exon_starts.keys():
-                exon_starts[k] = v['absolute']
+                exon_starts[k] = max(v['absolute'], 0.001)
 
         exon_starts.update(
             {k: v['absolute'] for k, v in aberrant_splicing.get('discovered_acceptors', {}).items() if lower_range <= k <= upper_range})
