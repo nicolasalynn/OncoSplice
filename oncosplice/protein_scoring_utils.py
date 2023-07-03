@@ -224,11 +224,9 @@ def get_logical_alignment(r, v):
         splicing, it is most common that blocks are inserted or deleted and therefore the most likely comparison is
         one in which gaps are minimalized and correspond to those alternative splicing blocks.
     '''
-    r = r.strip('*')
-    v = v.strip('*')
-
-    alignments = aligner.align(r, v)
-
+    print(r)
+    print(v)
+    alignments = aligner.align(r.strip('*'), v.strip('*'))
     if len(alignments) == 1:
         optimal_alignment = alignments[0]
     else:
