@@ -25,8 +25,11 @@ def generate_report(ref_proteome, var_proteome, missplicing, mutation, primary_t
                              ref_id == var_id.split('-')[0]]:
 
         if primary_transcript_only and 'Ensembl_canonical' not in ref_proteome[ref_id]['tag']:
+            print(f"{ref_id} is not good...")
             continue
 
+        # elif primary_transcript_only:
+        print(f"{ref_id} is good!")
         ### Compare and Score Ref protein and Isoform protein
         ref_prot, var_prot = ref_proteome[ref_id], var_proteome[var_id]
         if len(ref_prot.protein) < 20:
