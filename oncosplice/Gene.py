@@ -84,7 +84,7 @@ class EmptyGene:
     def develop_proteome(self):
         proteome = {}
         for tid in self.transcripts.keys():
-            if 'TIS' in self.transcripts[tid].keys() and self.transcripts[tid]['transcript_type'] == 'protein_coding':
+            if 'TIS' in self.transcripts[tid].keys() and self.transcripts[tid]['transcript_type'] == 'protein_coding' and 'Ensembl_canonical' in self.trasncripts[tid]['tag']:
                 proteome[tid] = self.develop_protein(tid)
         return proteome
 
