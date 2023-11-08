@@ -19,10 +19,13 @@ aligner.extend_gap_score = 0
 aligner.target_end_gap_score = 0
 aligner.query_end_gap_score = 0
 
-def generate_report(ref_proteome, var_proteome, missplicing, mutation):
+def generate_report(ref_proteome, var_proteome, missplicing, mutation, primary_transcript_only=True):
     full_report = []
     for (ref_id, var_id) in [(ref_id, var_id) for ref_id in ref_proteome.keys() for var_id in var_proteome.keys() if
                              ref_id == var_id.split('-')[0]]:
+
+        if primary_transcript_only and 'Ensembl_canonical' not in ref_proteome[ref_id]['tag']:
+            continue
 
         ### Compare and Score Ref protein and Isoform protein
         ref_prot, var_prot = ref_proteome[ref_id], var_proteome[var_id]
