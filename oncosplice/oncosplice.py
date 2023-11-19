@@ -56,13 +56,13 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
     cons_vector = np.array(cons_vector, dtype=float)
 
     affected_exon, affected_intron, distance_from_5, distance_from_3 = None, None, None, None
-    for i, (ex_start, ex_end) in enumerate(reference_transcript.exons()):
+    for i, (ex_start, ex_end) in enumerate(reference_transcript.exons):
         if min(ex_start, ex_end) <= mut.start <= max(ex_start, ex_end):
             affected_exon = i + 1
             distance_from_5 = abs(mut.start - ex_start)
             distance_from_3 = abs(mut.start - ex_end)
 
-    for i, (in_start, in_end) in enumerate(reference_transcript.exons()):
+    for i, (in_start, in_end) in enumerate(reference_transcript.exons):
         if min(in_start, in_end) <= mut.start <= max(in_start, in_end):
             affected_exon = i + 1
             distance_from_5 = abs(mut.start - in_end)
