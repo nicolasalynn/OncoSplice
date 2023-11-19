@@ -31,9 +31,9 @@ def oncosplice(mutation, sai_threshold=0.25, explicit=False):
         reports.append(pd.Series(report))
 
     reports = pd.concat(reports)
-    reports['weighted_oncosplice'] = reports.oncosplice_score * reports.isoform_prevalence
+    reports['weighted_oncosplice'] = reports.legacy_oncosplice_score * reports.isoform_prevalence
     if explicit:
-        return explicit
+        return reports
     else:
         return reports.groupby('transcript_id').weighted_oncosplice.mean().max()
 
@@ -48,8 +48,6 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
         cons_available = False
         cons_vector = [1] * len(reference_protein)
 
-    print(reference_protein)
-    print(variant_protein)
     alignment, num_ins, num_del = get_logical_alignment(reference_protein, variant_protein)
     deleted, inserted, aligned = get_insertions_and_deletions(alignment)
     window_length = min(76, len(reference_protein))
