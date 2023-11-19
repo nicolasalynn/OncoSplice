@@ -44,7 +44,7 @@ class Gene:
         return result
 
     def load_from_file(self, file_name):
-        if not file.exists():
+        if not file_name.exists():
             raise ValueError(f"'{str(file_name)}' does not exist.")
 
         data = json.load(open(file_name))
