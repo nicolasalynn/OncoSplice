@@ -53,7 +53,7 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
     cons_seq, cons_vector = access_conservation_data(reference_transcript.transcript_id)
     if cons_seq == reference_protein:
         cons_available = True
-        cons_vector = reference_protein.conservation_vector
+        cons_vector = cons_vector
     else:
         cons_available = False
         cons_vector = [1] * len(reference_protein)
