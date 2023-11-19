@@ -2,10 +2,8 @@ import numpy as np
 import networkx as nx
 import random
 from dataclasses import dataclass
-from geney import is_monotonic
-from oncosplice.titer_utils import run_through_titer, build_titer_model
+from oncosplice.titer_utils import run_through_titer
 from geney import *
-titer_model = build_titer_model()
 
 def check_pairwise_variant_compatibility(mut1, mut2):
     if mut1 == mut2:

@@ -22,6 +22,9 @@ from keras.layers import Conv1D, MaxPool1D, LSTM, Dropout, Flatten, Dense, Activ
 from keras import Sequential, Input
 
 
+titer_model = build_titer_model()
+
+
 def run_through_titer_adaptor(ref_cds, var_cds):
     new_cds_start, titer_score, _, _, _ = run_through_titer(mut_seq=var_cds.mature_mrna,
                                                             mut_coords=var_cds.mature_indices,
