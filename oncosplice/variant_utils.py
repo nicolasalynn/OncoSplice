@@ -2,7 +2,6 @@ import numpy as np
 import networkx as nx
 import random
 from dataclasses import dataclass
-from oncosplice.titer_utils import run_through_titer
 from geney import *
 
 def check_pairwise_variant_compatibility(mut1, mut2):
@@ -158,6 +157,7 @@ def generate_mut_variant(seq: str, indices: list, mut: Mutation):
     return new_seq, new_indices, True, consensus_allele
 
 def find_new_tis(seq, indices, tis, tts, tid='', data_path='/tamir2/shaicohen1/share/titer-master'):
+    from oncosplice.titer_utils import run_through_titer
     new_tis, _, _, _, _ = run_through_titer(mut_seq=seq,
                                            mut_coords=indices,
                                            ref_sc_coord=tis,
