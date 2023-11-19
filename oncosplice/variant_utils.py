@@ -176,7 +176,7 @@ def find_new_tts(seq, indices, tis):
     if len(pos_options) == 0:
         return indices[0] #[len(seq) - (len(seq) % 3) - 1]
     assert min(pos_options) % 3 == 0, f'{min(pos_options)} not divisible by three.'
-    return indices[min(pos_options)+2]
+    return indices[min(pos_options)-1] # +2]
 
 
 def develop_aberrant_splicing(exons, aberrant_splicing):

@@ -211,7 +211,7 @@ class Transcript:
         rel_start = self.transcript_indices.index(self.TIS)
         rel_end = self.transcript_indices.index(self.TTS)
         orf = self.transcript_seq[rel_start:rel_end + 1 + 3]
-        return str(Seq(orf).translate())
+        return str(Seq(orf).translate()).replace('*', '')
 
     def generate_translational_boundaries(self):
         if self.TIS not in self.indices:
