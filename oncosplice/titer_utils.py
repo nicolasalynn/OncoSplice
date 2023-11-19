@@ -330,6 +330,7 @@ def build_titer_model():
 
 if __name__ == '__main__':
     print("only utils")
+    titer_model = build_titer_model()
 else:
     # from time import time
     titer_model = build_titer_model()
@@ -388,3 +389,4 @@ else:
 #                                                  ref_coords, ref_seq,
 #                                                  ref_sc_coord, ref_id)
 # breakpoint()
+

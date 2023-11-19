@@ -8,7 +8,6 @@ from oncosplice.titer_utils import run_through_titer, build_titer_model
 titer_model = build_titer_model()
 
 class Protein(mature_mRNA):
-
     def __init__(self, transcript_start: int, transcript_end: int, rev: bool, chrm: str, donors: list, acceptors: list,
                  gene_name='undefined', transcript_id='undefined', transcript_type='undefined',
                  used_tis: int = None, used_tts: int = None, penetrance: float = 1.0, mutations=[]):

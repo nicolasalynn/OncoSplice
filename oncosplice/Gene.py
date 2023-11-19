@@ -1,24 +1,29 @@
-
-import copy
-import pandas as pd
-import numpy as np
-from geney import dump_json, unload_json
-
-from oncosplice.pre_mRNA import pre_mRNA
-from oncosplice.mature_mRNA import mature_mRNA
-from oncosplice.Protein import Protein
+from copy import copy
+from geney import *
+from Bio.Seq import Seq
+from oncosplice.variant_utils import generate_mut_variant, Mutation, find_new_tis, find_new_tts
+from pathlib import Path
 from oncosplice import oncosplice_setup
+file = Path('/Users/nl/Documents/phd/data/ensembl/mRNAs/protein_coding/mrnas_ENSG00000006283.18_CACNA1G.json')
 
-class EmptyGene:
-    def __init__(self):
-        self.gene_name = ''
+class Gene:
+
+    def __init__(self, gene_name=None, file=None, dict_data=None):
+        self.gene_name = gene_name
         self.gene_id = ''
         self.rev = None
         self.chrm = ''
         self.gene_start = 0
         self.gene_end = 0
         self.transcripts = {}
-        self.mutations = []
+        if gene_name:
+            file = get_correct_gene_file(gene_name, target_directory=oncosplice_setup['MRNA_PATH'])
+            if file.exists():
+                self.load_from_file(file)
+        elif dict_data:
+            self.load_from_dict(dict_data)
+        elif file:
+            self.load_from_file(file)
 
     def __repr__(self):
         return 'Gene(gene_name={gname})'.format(gname=self.gene_name)
@@ -33,149 +38,183 @@ class EmptyGene:
         return '{gname}, {ntranscripts} transcripts'.format(gname=self.gene_name, ntranscripts=self.__len__())
 
     def __copy__(self):
-        return copy.deepcopy(self)
+        cls = self.__class__
+        result = cls.__new__(cls)
+        result.__dict__.update(self.__dict__)
+        return result
+
+    def load_from_file(self, file_name):
+        if not file.exists():
+            raise ValueError(f"'{str(file_name)}' does not exist.")
+
+        data = json.load(open(file_name))
+        self.load_from_dict(dict_data=data)
+        return self
+
+    def load_from_dict(self, dict_data=None):
+        valid_attributes = ['gene_name', 'gene_id', 'rev', 'chrm', 'gene_start', 'gene_end', 'transcripts']
+        for k, v in dict_data.items():
+            if k in valid_attributes:
+                setattr(self, k, v)
+        return self
 
     def write_annotation_file(self, file_name):
-        dump_json(file_name, self.__dict__)
+        with open(file_name, 'wb') as out:
+            json.dump(out, self.__dict__)
+    def generate_transcript(self, tid):
+        return Transcript(self.transcripts[tid])
 
-    def add_transcript(self, transcript):
-        tid = transcript.get('transcript_id', '')
-        if not tid:
-            print('Cannot add a transcript without a meaningful transcript_id.')
-        elif tid in self.transcripts.keys():
-            print('Re-writing annotations for transcript {tid}.')
+    @property
+    def primary_transcript(self):
+        temp = [k for k, v in self.transcripts.items() if 'Ensembl_canonical' in v['tag']]
+        return self.generate_transcript(temp[0])
 
-        self.transcripts.update({tid: transcript})
+class Transcript:
+    def __init__(self, d=None):
+        self.transcript_id = None
+        self.transcript_start = None
+        self.transcript_end = None
+        self.transcript_type = None
+        self.acceptors, self.donors = [], []
+        self.TIS, self.TTS = None, None
+        self.transcript_seq, self.transcript_indices = '', []
+        self.protein_seq = ''
+        self.rev = None
+        self.chrm = ''
+        if d:
+            self.load_from_dict(d)
 
-    def develop_pre_mrna(self, tid):
-        return pre_mRNA(gene_name=self.gene_name, rev=self.rev, chrm=self.chrm, transcript_id=tid,
-                        transcript_start=self.transcripts[tid]['transcript_start'],
-                        transcript_end=self.transcripts[tid]['transcript_end'],
-                        transcript_type=self.transcripts[tid]['transcript_type'],
-                        mutations=self.mutations)
+    def __repr__(self):
+        return 'pre_mRNA(transcript_id={tid})'.format(tid=self.transcript_id)
 
-    def develop_mature_mrna(self, tid):
-        return mature_mRNA(gene_name=self.gene_name,
-                           rev=self.rev,
-                           chrm=self.chrm,
-                           transcript_id=tid,
-                           transcript_start=self.transcripts[tid]['transcript_start'],
-                           transcript_end=self.transcripts[tid]['transcript_end'],
-                           transcript_type=self.transcripts[tid]['transcript_type'],
-                           donors=self.transcripts[tid].get('donors', []),
-                           acceptors=self.transcripts[tid].get('acceptors', []),
-                           mutations=self.mutations)
+    def __len__(self):
+        return len(self.transcript_seq)
 
-    def develop_protein(self, tid):
-        return Protein(gene_name=self.gene_name,
-                       rev=self.rev,
-                       chrm=self.chrm,
-                       transcript_id=tid,
-                       transcript_start=self.transcripts[tid]['transcript_start'],
-                       transcript_end=self.transcripts[tid]['transcript_end'],
-                       transcript_type=self.transcripts[tid]['transcript_type'],
-                       donors=self.transcripts[tid].get('donors', []),
-                       acceptors=self.transcripts[tid].get('acceptors', []),
-                       used_tis=self.transcripts[tid]['TIS'],
-                       used_tts=self.transcripts[tid]['TTS'],
-                       penetrance=self.transcripts[tid].get('penetrance_weight', 1),
-                       mutations=self.mutations)
+    def __str__(self):
+        return 'Transcript {tid}, Transcript Type: ' \
+               '{protein_coding}'.format(
+                tid=self.transcript_id, protein_coding=self.transcript_type)
 
-    def develop_proteome(self):
-        proteome = {}
-        for tid in self.transcripts.keys():
-            if 'TIS' in self.transcripts[tid].keys() and self.transcripts[tid]['transcript_type'] == 'protein_coding' and 'Ensembl_canonical' in self.transcripts[tid]['tag']:
-                proteome[tid] = self.develop_protein(tid)
-        return proteome
+    def __eq__(self, other):
+        return self.transcript_seq == other.transcript_seq
 
-    def ntranscripts(self, filter=None):
-        if filter:
-            count = 0
-            for t in self.transcripts.values():
-                if t['transcript_type'] == filter:
-                    count += 1
-            return count
-
+    def __contains__(self, subvalue):
+        if isinstance(subvalue, str):
+            return subvalue in self.transcript_seq
+        elif isinstance(subvalue, int):
+            return subvalue in self.transcript_indices
         else:
-            return len(self.transcripts)
+            print(
+                "Pass an integer to check against the span of the gene's coordinates or a string to check against the "
+                "pre-mRNA sequence.")
+            return False
 
-    def nexons(self):
-        acceptors, donors = [], []
-        for t in self.transcripts.values():
-            acceptors.append(t['transcript_start'])
-            acceptors.extend(t['acceptors'])
-            donors.extend(t['donors'])
-            donors.append(t['transcript_end'])
+    def __copy__(self, other):
+        return copy(self)
 
-        nunique_acceptors = len(set(acceptors))
-        nunique_donors = len(set(donors))
-        exons = list(zip(acceptors, donors))
-        nexons = len(set(exons))
-        return {'exon_count': nexons, 'acceptor_count': nunique_acceptors, 'donor_count': nunique_donors}
 
-class AnnotatedGene(EmptyGene):
-    def __init__(self, file):
-        # self.file = file
-        super().__init__()
-        if not file.exists():
-            raise ValueError(f"Gene {file} annotations not available.")
+    def load_from_dict(self, data):
+        valid_attributes = ['chrm', 'transcript_id', 'transcript_name', 'transcript_start', 'transcript_end', 'donors', 'acceptors', 'TIS', 'TTS', 'protein_seq', 'transcript_seq', 'rev']
+        for k, v in data.items():
+            if k in valid_attributes:
+                setattr(self, k, v)
+        self.__arrange_boundaries()
 
-        self.data = unload_json(file)
-        self.gene_name = self.data['gene_name']
-        if not all(['gene_name' in self.data.keys(), 'rev' in self.data.keys(), 'chrm' in self.data.keys(),
-                    'gene_start' in self.data.keys(), 'gene_end' in self.data.keys()]):
-            raise ValueError(f"Gene {self.gene_name} annotations not complete. Please ensure annotations include gene "
-                             f"name, rev, chrm, gene_start, and gene_end")
-        self.gene_name = self.data['gene_name']
-        self.rev = self.data['rev']
-        self.chrm = self.data['chrm']
-        self.gene_start = self.data['gene_start']
-        self.gene_end = self.data['gene_end']
-
-        self.gene_id = self.data.get('gene_id', 'undefinied')
-        self.tag = self.data.get('tag', 'undefined')
-        self.transcripts = self.data.get('transcripts', {})
-        self.transcripts = {k: v for k, v in self.transcripts.items() if 'donors' in v.keys() and 'acceptors' in v.keys() and 'TIS' in v.keys() and 'TTS' in v.keys()}
-        self.__load_tranex_data()
-
-    def __load_tranex_data(self):
-        target_gid = self.gene_id.split('.')[0]
-        target_file = oncosplice_setup['TRANEX_PATH'] / f'tranex_{target_gid}.csv'
-        if target_file.exists():
-            print(f'target file {target_file} exists.')
-            self.tranex_tpm = pd.read_csv(target_file)
+        if not self.__exon_coverage_check:
+            self.transcript_seq, self.indices = self.generate_mature_mrna
         else:
-            print(f'target file {target_file} doesnt exist.')
-            transcripts = list(self.transcripts.keys())
-            vals = np.ones(len(transcripts))
-            self.tranex_tpm = pd.DataFrame(vals, index=transcripts, columns=['tmp_sum'])
-            self.tranex_tpm.index.name = 'ensembl_transcript_id'
+            self.transcript_indices = self.mrna_indices
+        return None
 
-    def create_gene_isoform(self, mut_ids, aberrant_splicing=None):
+    @property
+    def exons(self):
+        return list(zip(self.acceptors, self.donors))
 
-        variant_gene = self.__copy__()
-        variant_gene.mutations = mut_ids.split('|')
-        variant_gene.transcripts = {}
-        variant_gene.data = {}
-        
-        for tid in self.transcripts.keys():
-            ref_transcript = self.develop_mature_mrna(tid)
+    def set_exons(self, boundaries):
+        self.acceptors, self.donors = boundaries['acceptors'], boundaries['donors']
+        self.__arrange_boundaries()
+        return self
 
-            for tid_counter, new_blueprints in enumerate(
-                    ref_transcript.develop_aberrant_splicing(
-                                              aberrant_splicing=aberrant_splicing)):
-
-                var_transcript = copy.deepcopy(self.transcripts[tid])
-                var_transcript['protein_seq'] = var_transcript['transcript_seq'] = ''
-                var_transcript['transcript_id'] += f'-{tid_counter}'
-                var_transcript['donors'] = new_blueprints['donors']
-                var_transcript['acceptors'] = new_blueprints['acceptors']
-                var_transcript['penetrance_weight'] = new_blueprints['path_weight']
-                variant_gene.add_transcript(var_transcript)
-
-        return variant_gene
+    @property
+    def introns(self):
+        return list(zip([v for v in self.donors if v != self.transcript_end], [v for v in self.acceptors if v != self.transcript_start]))
 
 
+    def __exon_coverage_check(self):
+        if sum([abs(a-b) + 1 for a, b in self.exons]) == len(self):
+            return True
+        else:
+            return False
+    @property
+    def exons_pos(self):
+        temp = self.exons
+        if self.rev:
+            temp = [(b, a) for a, b in temp[::-1]]
+        return temp
+    @property
+    def mrna_indices(self):
+        temp = [lst for lsts in [list(range(a, b+1)) for a, b in self.exons_pos] for lst in lsts]
+        return sorted(temp, reverse=self.rev)
 
+    def __arrange_boundaries(self):
+        self.acceptors.append(self.transcript_start)
+        self.donors.append(self.transcript_end)
+        self.acceptors = list(set(self.acceptors))
+        self.donors = list(set(self.donors))
+        self.acceptors.sort(reverse=self.rev)
+        self.donors.sort(reverse=self.rev)
+        return self
 
+    def positive_strand(self):
+        if self.rev:
+            return reverse_complement(self.transcript_seq)
+        else:
+            return self.transcript_seq
+
+    def __pos2sense(self, mrna, indices):
+        if self.rev:
+            mrna = reverse_complement(mrna)
+            indices = indices[::-1]
+        return mrna, indices
+
+    def pull_pre_mrna_pos(self):
+        if self.rev:
+            return pull_fasta_seq_endpoints(self.chrm, self.transcript_end,
+                                                                   self.transcript_start)
+        else:
+            return pull_fasta_seq_endpoints(self.chrm, self.transcript_start,
+                                                                   self.transcript_end)
+
+    def generate_pre_mrna_pos(self, mutations=[]):
+        seq, indices = self.pull_pre_mrna_pos()
+        for mutation in mutations:
+            mutation = Mutation(mutation)
+            seq, indices, _, _ = generate_mut_variant(seq, indices, mut=mutation)
+        return seq, indices
+
+    def generate_pre_mrna(self, mutations=[]):
+        return self.__pos2sense(*self.generate_pre_mrna_pos(mutations))
+
+    def generate_mature_mrna_pos(self, mutations=[]):
+        mature_mrna, mature_indices = '', []
+        pre_seq, pre_indices = self.generate_pre_mrna_pos(mutations)
+        for i, j in self.exons_pos:
+            rel_start, rel_end = pre_indices.index(i), pre_indices.index(j)
+            mature_mrna += pre_seq[rel_start:rel_end + 1]
+            mature_indices.extend(pre_indices[rel_start:rel_end + 1])
+        return mature_mrna, mature_indices
+
+    def generate_mature_mrna(self, mutations=[]):
+        return self.__pos2sense(*self.generate_mature_mrna_pos(mutations))
+
+    def generate_protein(self):
+        rel_start = self.transcript_indices.index(self.TIS)
+        rel_end = self.transcript_indices.index(self.TTS)
+        orf = self.transcript_seq[rel_start:rel_end + 1 + 3]
+        return str(Seq(orf).translate())
+
+    def generate_translational_boundaries(self):
+        self.TIS = find_new_tis(self.transcript_seq, self.indices, self.TIS, self.TTS)
+        self.TTS = find_new_tts(self.transcript_seq, self.indices, self.TIS)
+        return self
 
