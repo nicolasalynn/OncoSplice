@@ -28,9 +28,12 @@ def oncosplice(mutation, sai_threshold=0.25, explicit=False):
         report['missplicing'] = bool(aberrant_splicing)
         report['aberrant_splicing'] = aberrant_splicing.aberrant_splicing
         report['isoform_prevalence'] = new_boundaries['path_weight']
-        reports.append(pd.Series(report))
+        report['mutation'] = mutation.mut_id
+        report.name = f'isoform_{i}'
+        reports.append(report)
 
-    reports = pd.concat(reports)
+    reports = pd.concat(reports, axis=1).transpose()
+    print(reports)
     reports['weighted_oncosplice'] = reports.legacy_oncosplice_score * reports.isoform_prevalence
     if explicit:
         return reports
