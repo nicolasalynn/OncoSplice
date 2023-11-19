@@ -58,6 +58,8 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
         cons_available = False
         cons_vector = [1] * len(reference_protein)
 
+    print(reference_protein)
+    print(variant_protein)
     alignment, num_ins, num_del = get_logical_alignment(reference_protein, variant_protein)
     deleted, inserted, aligned = get_insertions_and_deletions(alignment)
     window_length = min(76, len(reference_protein.protein))
