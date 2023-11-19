@@ -164,7 +164,7 @@ class PredictSpliceAI:
             self.missplicing = self.load_sai_predictions()
 
         else:
-            self.missplicing = run_spliceai(self.modification.mut_id, sai_mrg_context=sai_mrg_context, min_coverage=min_coverage, sai_threshold=0.1)
+            self.missplicing = run_spliceai(self.modification, sai_mrg_context=sai_mrg_context, min_coverage=min_coverage, sai_threshold=0.1)
             self.save_sai_predictions()
 
     def __bool__(self):

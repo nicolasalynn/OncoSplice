@@ -33,7 +33,6 @@ def oncosplice(mutation, sai_threshold=0.25, explicit=False):
         reports.append(report)
 
     reports = pd.concat(reports, axis=1).transpose()
-    print(reports)
     reports['weighted_oncosplice'] = reports.legacy_oncosplice_score * reports.isoform_prevalence
     if explicit:
         return reports
