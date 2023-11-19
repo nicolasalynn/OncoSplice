@@ -72,8 +72,8 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
     report['isoform_id'] = variant_transcript.transcript_id.split('-')[-1]
     report['var_TIS'] = variant_transcript.TIS
     report['var_TIS'] = variant_transcript.TTS
-    report['exon_changes'] = '|'.join([v for v in define_missplicing_events(reference_protein.exons(), variant_protein.exons(),
-                              reference_protein.rev)])
+    report['exon_changes'] = '|'.join([v for v in define_missplicing_events(reference_transcript.exons, variant_transcript.exons,
+                              reference_transcript.rev)])
     report['ref_prot_length'] = len(reference_protein)
     report['var_prot_length'] = len(variant_protein)
     report['preservation'] = aligned/len(reference_protein)
