@@ -21,7 +21,9 @@ def oncosplice(mutation, sai_threshold=0.25, explicit=False):
     for i, new_boundaries in enumerate(develop_aberrant_splicing(reference_transcript.exons, aberrant_splicing.aberrant_splicing)):
         variant_transcript = deepcopy(reference_transcript)
         variant_transcript.transcript_seq, variant_transcript.indices = variant_transcript.generate_mature_mrna(mutations=mutation.mut_id.split('|'))
+        print(f"Var Exons: {variant_transcript.exons}")
         variant_transcript.set_exons(new_boundaries).generate_translational_boundaries()
+        print(f"Var Exons: {variant_transcript.exons}")
 
         # Generating data
         report = compare_transcripts(reference_transcript, variant_transcript, mutation)
