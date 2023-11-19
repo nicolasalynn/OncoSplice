@@ -225,6 +225,7 @@ def get_logical_alignment(r, v):
                           alignments]
         optimal_alignment = alignments[number_of_gaps.index(min(number_of_gaps))]
 
+    print(optimal_alignment)
     num_insertions = re.sub('-+', '-', optimal_alignment[0, :]).count('-')
     num_deletions = re.sub('-+', '-', optimal_alignment[1, :]).count('-')
 
