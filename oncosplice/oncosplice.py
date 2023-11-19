@@ -52,9 +52,8 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
     print(variant_protein)
     alignment, num_ins, num_del = get_logical_alignment(reference_protein, variant_protein)
     deleted, inserted, aligned = get_insertions_and_deletions(alignment)
-    window_length = min(76, len(reference_protein.protein))
+    window_length = min(76, len(reference_protein))
     cons_vector = np.array(cons_vector, dtype=float)
-    # scores = calculate_oncosplice_scores(deleted, inserted, cons_vector, window_length//2)
 
     affected_exon, affected_intron, distance_from_5, distance_from_3 = None, None, None, None
     for i, (ex_start, ex_end) in enumerate(reference_transcript.exons()):
@@ -192,12 +191,6 @@ def get_insertions_and_deletions(alignment):
 
     return deletions, insertions, len(aligned_pos)
 
-#
-# class optimal_alignment_class:
-#     def __init__(self, a, b):
-#         self.seqA = a
-#         self.seqB = b
-
 
 def get_logical_alignment(r, v):
     '''
@@ -217,25 +210,6 @@ def get_logical_alignment(r, v):
 
     num_insertions = re.sub('-+', '-', optimal_alignment.seqA).count('-')
     num_deletions = re.sub('-+', '-', optimal_alignment.seqB).count('-')
-
-    # optimal_alignment = optimal_alignment_class(optimal_alignment[0, :], optimal_alignment[1, :])
-    #
-    # else:
-    #     alignments = pairwise2.align.globalms(r, v, 1, -1, -3, 0, penalize_end_gaps=(True, False))
-    #
-    #     if len(alignments) == 1:
-    #         optimal_alignment = alignments[0]
-    #     else:
-    #         # This calculates the number of gaps in each alignment.
-    #         number_of_gaps = [re.sub('-+', '-', al.seqA).count('-') + re.sub('-+', '-', al.seqB).count('-') for al in
-    #                           alignments]
-    #         optimal_alignment = alignments[number_of_gaps.index(min(number_of_gaps))]
-    #
-    #     num_insertions = re.sub('-+', '-', optimal_alignment.seqA).count('-')
-    #     num_deletions = re.sub('-+', '-', optimal_alignment.seqB).count('-')
-    #
-    #     print(format_alignment(*optimal_alignment))
-    # We return the alignment with the smallest number of gaps.
     return optimal_alignment, num_insertions, num_deletions
 
 
