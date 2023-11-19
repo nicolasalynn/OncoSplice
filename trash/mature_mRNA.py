@@ -1,8 +1,7 @@
 import networkx as nx
-import numpy as np
 
-from oncosplice.pre_mRNA import pre_mRNA
-from oncosplice.SpliceSite import SpliceSite
+from trash.pre_mRNA import pre_mRNA
+from trash.SpliceSite import SpliceSite
 
 class mature_mRNA(pre_mRNA):
 
