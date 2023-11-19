@@ -214,7 +214,8 @@ class Transcript:
         return str(Seq(orf).translate())
 
     def generate_translational_boundaries(self):
-        self.TIS = find_new_tis(self.transcript_seq, self.indices, self.TIS, self.TTS)
+        if self.TIS not in self.indices:
+            self.TIS = find_new_tis(self.transcript_seq, self.indices, self.TIS, self.TTS)
         self.TTS = find_new_tts(self.transcript_seq, self.indices, self.TIS)
         return self
 
