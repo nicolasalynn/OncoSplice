@@ -21,16 +21,16 @@ aligner.extend_gap_score = 0
 aligner.target_end_gap_score = 0
 aligner.query_end_gap_score = 0
 
-def oncosplice(mutations, sai_threshold=0.25, explicit=False):
-    print(f'>> Processing: {mutations}')
-    mutation = Variations(mutations)
-    aberrant_splicing = PredictSpliceAI(mutations, sai_threshold)
+def oncosplice(mutation, sai_threshold=0.25, explicit=False):
+    print(f'>> Processing: {mutation}')
+    mutation = Variations(mutation)
+    aberrant_splicing = PredictSpliceAI(mutation, sai_threshold)
 
     reports = []
     reference_transcript = Gene(mutation.gene).primary_transcript
     for i, new_boundaries in enumerate(develop_aberrant_splicing(reference_transcript.exons, aberrant_splicing.aberrant_splicing)):
         variant_transcript = deepcopy(reference_transcript)
-        variant_transcript.transcript_seq, variant_transcript.indices = variant_transcript.generate_mature_mrna(mutations=mutations.split('|'))
+        variant_transcript.transcript_seq, variant_transcript.indices = variant_transcript.generate_mature_mrna(mutations=mutation.mut_id.split('|'))
         variant_transcript.set_exons(new_boundaries).generate_translation_boundaries()
 
         # Generating data
