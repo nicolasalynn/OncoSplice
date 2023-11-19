@@ -1,8 +1,10 @@
 import numpy as np
 import networkx as nx
 import random
+from pathlib import Path
 from dataclasses import dataclass
-from geney import *
+from geney import is_monotonic
+from geney.genomic.translation import END_CODONS
 
 def check_pairwise_variant_compatibility(mut1, mut2):
     if mut1 == mut2:
