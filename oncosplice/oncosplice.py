@@ -4,7 +4,7 @@ from Bio import Align
 import re
 import json
 from copy import deepcopy
-from geney import query_rate4site_db
+from geney import access_conservation_data
 from oncosplice.spliceai_utils import PredictSpliceAI
 from oncosplice.Gene import Gene
 from oncosplice.variant_utils import Variations, develop_aberrant_splicing
@@ -50,7 +50,7 @@ def oncosplice(mutation, sai_threshold=0.25, explicit=False):
 
 def compare_transcripts(reference_transcript, variant_transcript, mut):
     reference_protein, variant_protein = reference_transcript.generate_protein(), variant_transcript.generate_protein()
-    cons_seq, cons_vector = query_rate4site_db(reference_transcript.transcript_id)
+    cons_seq, cons_vector = access_conservation_data(reference_transcript.transcript_id)
     if cons_seq == reference_protein:
         cons_available = True
         cons_vector = reference_protein.conservation_vector
