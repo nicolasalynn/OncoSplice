@@ -34,7 +34,7 @@ def oncosplice(mutation, sai_threshold=0.25, explicit=False):
         variant_transcript.set_exons(new_boundaries).generate_translational_boundaries()
 
         # Generating data
-        report = compare_transcripts(reference_transcript, variant_transcript)
+        report = compare_transcripts(reference_transcript, variant_transcript, mutation)
         report['missplicing'] = bool(aberrant_splicing)
         report['aberrant_splicing'] = aberrant_splicing.aberrant_splicing
         report['isoform_prevalence'] = new_boundaries['path_weight']
