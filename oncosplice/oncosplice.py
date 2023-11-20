@@ -40,6 +40,7 @@ def oncosplice(mutation, sai_threshold=0.25, explicit=False):
 def compare_transcripts(reference_transcript, variant_transcript, mut):
     reference_protein, variant_protein = reference_transcript.generate_protein(), variant_transcript.generate_protein()
     cons_seq, cons_vector = access_conservation_data(reference_transcript.transcript_id)
+    cons_seq = cons_seq.replace('*', '')
     if cons_seq == reference_protein:
         cons_available = True
         cons_vector = cons_vector
