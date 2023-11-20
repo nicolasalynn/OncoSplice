@@ -119,7 +119,7 @@ class Transcript:
         return {k: v for k, v in self.__dict__.items() if k in core_attributes}
 
     def load_from_dict(self, data):
-        valid_attributes = ['chrm', 'transcript_id', 'transcript_name', 'transcript_start', 'transcript_end', 'donors', 'acceptors', 'TIS', 'TTS', 'protein_seq', 'transcript_seq', 'rev']
+        valid_attributes = ['chrm', 'transcript_id', 'transcript_name', 'transcript_type', 'transcript_start', 'transcript_end', 'donors', 'acceptors', 'TIS', 'TTS', 'protein_seq', 'transcript_seq', 'rev']
         for k, v in data.items():
             if k in valid_attributes:
                 setattr(self, k, v)
