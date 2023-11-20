@@ -67,7 +67,7 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
             distance_from_3 = abs(mut.start - in_start)
 
     report = reference_transcript.constructor
-    report.update({f'variant_{k}':v for k, v in variant_transcript.__dict__})
+    report.update({f'variant_{k}':v for k, v in variant_transcript.__dict__.items()})
 
     report['exon_changes'] = '|'.join([v for v in define_missplicing_events(reference_transcript.exons, variant_transcript.exons,
                               reference_transcript.rev)])
