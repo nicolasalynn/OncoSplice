@@ -124,8 +124,7 @@ class Transcript:
             if k in valid_attributes:
                 setattr(self, k, v)
         self.__arrange_boundaries()
-        self.transcript_seq, self.transcript_indices = self.generate_mature_mrna
-
+        self.generate_mature_mrna(inplace=True)
         return self
 
     @property
