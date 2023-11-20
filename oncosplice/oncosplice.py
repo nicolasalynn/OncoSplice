@@ -49,7 +49,7 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
         cons_vector = [1] * len(reference_protein)
 
     alignment, num_ins, num_del = get_logical_alignment(reference_protein, variant_protein)
-    deleted, inserted, aligned = get_insertions_and_deletions(alignment)
+    deleted, inserted, aligned, unified_seq = get_insertions_and_deletions(alignment)
     window_length = min(76, len(reference_protein))
     cons_vector = np.array(cons_vector, dtype=float)
 
@@ -66,19 +66,23 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
             distance_from_5 = abs(mut.start - in_end)
             distance_from_3 = abs(mut.start - in_start)
 
-    report = reference_transcript.__dict__
-    report['isoform_id'] = variant_transcript.transcript_id.split('-')[-1]
-    report['var_TIS'] = variant_transcript.TIS
-    report['var_TIS'] = variant_transcript.TTS
+    report = reference_transcript.constructor
+    report.update({f'variant_{k}':v for k, v in variant_transcript.__dict__})
+
     report['exon_changes'] = '|'.join([v for v in define_missplicing_events(reference_transcript.exons, variant_transcript.exons,
                               reference_transcript.rev)])
     report['ref_prot_length'] = len(reference_protein)
     report['var_prot_length'] = len(variant_protein)
     report['preservation'] = aligned/len(reference_protein)
-    report['num_insertions'] = num_ins
-    report['num_deletions'] = num_del
-    report['insertions'] = json.dumps(inserted)
-    report['deletions'] = json.dumps(deleted)
+    report['protein'] = unified_seq
+    report['reference_mRNA'] = reference_transcript.transcript_seq
+    report['variant_mRNA'] = variant_transcript.transcript_seq
+    report['reference_CDS_start'] = reference_transcript.indices.index(reference_transcript.TIS)
+    report['variant_CDS_start'] = variant_transcript.indices.index(variant_transcript.TIS)
+    # report['num_insertions'] = num_ins
+    # report['num_deletions'] = num_del
+    # report['insertions'] = json.dumps(inserted)
+    # report['deletions'] = json.dumps(deleted)
     report['affected_exon'] = affected_exon
     report['affected_intron'] = affected_intron
     report['mutation_distance_from_5'] = distance_from_5
@@ -89,7 +93,6 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
     report.update(calculate_oncosplice_scores(deleted, inserted, cons_vector))
 
     return pd.Series(report)
-
 
 def define_missplicing_events(ref_exons, var_exons, rev):
     ref_introns = [(ref_exons[i][1], ref_exons[i + 1][0]) for i in range(len(ref_exons) - 1)]
@@ -164,30 +167,70 @@ def get_insertions_and_deletions(alignment):
     insertions, deletions = {}, {}
     last_event = 'ALIGN'
     del_start_pos = ''
+    unified_string = []
     for rel_pos, (ch_a, ch_b) in enumerate(list(zip(alignment.seqA, alignment.seqB))):
         if ch_a == ch_b != '-':
+            if last_event == 'ALIGN':
+                pass
+            elif last_event == 'DEL':
+                unified_string.append('<DEL_END>')
+            elif last_event == 'INS':
+                unified_string.append('<INS_END>')
             aligned_pos.append(rel_pos)
             last_event = 'ALIGN'
+            unified_string.append(ch_a)
 
-        elif (ch_a != ch_b == '-') or (ch_a != ch_b and ch_a != '-' and ch_b != '-'):
+        elif (ch_a != ch_b and ch_a != '-' and ch_b != '-'):
             deleted_pos.append(rel_pos)
             if last_event == 'DEL':
                 deletions[del_start_pos] += ch_a
-            else:
+            elif last_event == 'ALIGN':
                 last_event = 'DEL'
                 del_start_pos = ref_map[rel_pos]
                 deletions[del_start_pos] = ch_a
+            elif last_event == 'INS':
+                last_event = 'DEL'
+                del_start_pos = ref_map[rel_pos]
+                deletions[del_start_pos] = ch_a
+
+            unified_string.append(f'({ch_a}>{ch_b})')
+
+        elif (ch_a != ch_b == '-'):
+            deleted_pos.append(rel_pos)
+            if last_event == 'DEL':
+                deletions[del_start_pos] += ch_a
+            elif last_event == 'ALIGN':
+                last_event = 'DEL'
+                del_start_pos = ref_map[rel_pos]
+                deletions[del_start_pos] = ch_a
+                unified_string.append('<DEL_START>')
+            elif last_event == 'INS':
+                last_event = 'DEL'
+                del_start_pos = ref_map[rel_pos]
+                deletions[del_start_pos] = ch_a
+                unified_string.append('<INS_END>')
+                unified_string.append('<DEL_START>')
+            unified_string.append(ch_a)
+
 
         elif ch_b != ch_a == '-':
             point_of_insertion = find_last_real_pos(rel_pos, ref_map)
             inserted_pos.append(point_of_insertion)
             if last_event == 'INS':
                 insertions[point_of_insertion] += ch_b
-            else:
+            elif last_event == 'ALIGN':
                 last_event = 'INS'
                 insertions[point_of_insertion] = ch_b
+                unified_string.append('<INS_START>')
+            elif last_event == 'DEL':
+                last_event = 'INS'
+                insertions[point_of_insertion] = ch_b
+                unified_string.append('<DEL_END>')
+                unified_string.append('<INS_START>')
+            unified_string.append(ch_b)
 
-    return deletions, insertions, len(aligned_pos)
+
+    return deletions, insertions, len(aligned_pos), ''.join(unified_string)
 
 
 def get_logical_alignment(r, v):
