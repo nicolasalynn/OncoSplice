@@ -124,12 +124,9 @@ class Transcript:
             if k in valid_attributes:
                 setattr(self, k, v)
         self.__arrange_boundaries()
+        self.transcript_seq, self.transcript_indices = self.generate_mature_mrna
 
-        if not self.__exon_coverage_check:
-            self.transcript_seq, self.indices = self.generate_mature_mrna
-        else:
-            self.transcript_indices = self.mrna_indices
-        return None
+        return self
 
     @property
     def exons(self):
@@ -211,7 +208,7 @@ class Transcript:
 
     def generate_mature_mrna(self, mutations=[], inplace=True):
         if inplace:
-            self.transcript_seq, self.indices = self.__pos2sense(*self.generate_mature_mrna_pos(mutations))
+            self.transcript_seq, self.transcript_indices = self.__pos2sense(*self.generate_mature_mrna_pos(mutations))
             return self
         return self.__pos2sense(*self.generate_mature_mrna_pos(mutations))
 
@@ -222,8 +219,8 @@ class Transcript:
         return str(Seq(orf).translate()).replace('*', '')
 
     def generate_translational_boundaries(self):
-        if self.TIS not in self.indices:
-            self.TIS = find_new_tis(self.transcript_seq, self.indices, self.TIS, self.TTS)
-        self.TTS = find_new_tts(self.transcript_seq, self.indices, self.TIS)
+        if self.TIS not in self.transcript_indices:
+            self.TIS = find_new_tis(self.transcript_seq, self.transcript_indices, self.TIS, self.TTS)
+        self.TTS = find_new_tts(self.transcript_seq, self.transcript_indices, self.TIS)
         return self
 

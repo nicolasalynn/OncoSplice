@@ -11,23 +11,25 @@ from oncosplice.variant_utils import Variations, develop_aberrant_splicing
 
 sample_mut_id = 'KRAS:12:25227343:G:T'
 
-def oncosplice(mutation, sai_threshold=0.25, prevalence_threshold=0.25, primary_transcript=False):
+def oncosplice(mutation, sai_threshold=0.25, prevalence_threshold=0.25, target_transcripts=None, primary_transcript=False):
     print(f'>> Processing: {mutation}')
     mutation = Variations(mutation)
     aberrant_splicing = PredictSpliceAI(mutation, sai_threshold)
 
     gene = Gene(mutation.gene)
-    if primary_transcript:
-        reports = oncosplice_transcript(gene.primary_transcript, mutation, aberrant_splicing)
+    if target_transcripts:
+        reports = pd.concat([oncosplice_transcript(gene.transcripts[transcript_id], mutation, aberrant_splicing, prevalence_threshold) for
+                             transcript_id in target_transcripts if gene.transcripts[transcript_id]['transcript_type'] == 'protein_coding'], axis=1)
+    elif primary_transcript:
+        reports = oncosplice_transcript(gene.primary_transcript, mutation, aberrant_splicing, prevalence_threshold)
     else:
-        reports = pd.concat([oncosplice_transcript(reference_transcript, mutation, aberrant_splicing) for
+        reports = pd.concat([oncosplice_transcript(reference_transcript, mutation, aberrant_splicing, prevalence_threshold) for
                              reference_transcript in gene if reference_transcript.transcript_type == 'protein_coding'], axis=1)
 
-    reports = reports[reports.isoform_prevalence >= prevalence_threshold]
     return reports
 
 
-def oncosplice_transcript(reference_transcript, mutation, aberrant_splicing):
+def oncosplice_transcript(reference_transcript, mutation, aberrant_splicing, prevalence_threshold=0.0):
     reports = []
     for i, new_boundaries in enumerate(develop_aberrant_splicing(reference_transcript.exons, aberrant_splicing.aberrant_splicing)):
         variant_transcript = Transcript(reference_transcript.__dict__).set_exons(new_boundaries).generate_mature_mrna(mutations=mutation.mut_id.split('|'), inplace=True).generate_translational_boundaries()
@@ -41,6 +43,7 @@ def oncosplice_transcript(reference_transcript, mutation, aberrant_splicing):
 
     reports = pd.concat(reports, axis=1).transpose()
     reports['weighted_oncosplice'] = reports.legacy_oncosplice_score * reports.isoform_prevalence
+    reports = reports[reports.isoform_prevalence >= prevalence_threshold]
     return reports
 def oncosplice_score(mutation, sai_threshold=0.5, prevalence_threshold=0.25, primary_transcript=False):
     return oncosplice(mutation, sai_threshold=sai_threshold, prevalence_threshold=prevalence_threshold, primary_transcript=primary_transcript).groupby('transcript_id').weighted_oncosplice.mean().max()
