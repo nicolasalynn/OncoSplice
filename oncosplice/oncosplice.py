@@ -77,8 +77,8 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
     report['protein'] = unified_seq
     report['reference_mRNA'] = reference_transcript.transcript_seq
     report['variant_mRNA'] = variant_transcript.transcript_seq
-    report['reference_CDS_start'] = reference_transcript.indices.index(reference_transcript.TIS)
-    report['variant_CDS_start'] = variant_transcript.indices.index(variant_transcript.TIS)
+    report['reference_CDS_start'] = reference_transcript.transcript_indices.index(reference_transcript.TIS)
+    report['variant_CDS_start'] = variant_transcript.transcript_indices.index(variant_transcript.TIS)
     # report['num_insertions'] = num_ins
     # report['num_deletions'] = num_del
     # report['insertions'] = json.dumps(inserted)
