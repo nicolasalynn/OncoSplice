@@ -115,7 +115,7 @@ class Transcript:
     @property
     def constructor(self):
         core_attributes = ['transcript_id', 'transcript_start', 'transcript_end', 'transcript_type', 'acceptors', 'donors', 'TIS', 'TTS', 'rev', 'chrm']
-        return {k: v for k, v in self.__dict__ if k in core_attributes}
+        return {k: v for k, v in self.__dict__.items() if k in core_attributes}
 
     def load_from_dict(self, data):
         valid_attributes = ['chrm', 'transcript_id', 'transcript_name', 'transcript_start', 'transcript_end', 'donors', 'acceptors', 'TIS', 'TTS', 'protein_seq', 'transcript_seq', 'rev']
