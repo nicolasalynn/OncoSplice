@@ -204,7 +204,10 @@ class Transcript:
             mature_indices.extend(pre_indices[rel_start:rel_end + 1])
         return mature_mrna, mature_indices
 
-    def generate_mature_mrna(self, mutations=[]):
+    def generate_mature_mrna(self, mutations=[], inplace=True):
+        if inplace:
+            self.transcript_seq, self.indices = self.__pos2sense(*self.generate_mature_mrna_pos(mutations))
+            return self
         return self.__pos2sense(*self.generate_mature_mrna_pos(mutations))
 
     def generate_protein(self):

@@ -167,6 +167,11 @@ class PredictSpliceAI:
             self.missplicing = run_spliceai(self.modification, sai_mrg_context=sai_mrg_context, min_coverage=min_coverage, sai_threshold=0.1)
             self.save_sai_predictions()
 
+    def __repr__(self):
+        return f'Missplicing({self.modification.mut_id}) --> {self.missplicing}'
+
+    def __str__(self):
+        return self.aberrant_splicing
     def __bool__(self):
         for event, details in self.missplicing.items():
             if details:

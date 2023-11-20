@@ -6,7 +6,7 @@ import json
 from copy import deepcopy
 from geney import access_conservation_data
 from oncosplice.spliceai_utils import PredictSpliceAI
-from oncosplice.Gene import Gene
+from oncosplice.Gene import Gene, Transcript
 from oncosplice.variant_utils import Variations, develop_aberrant_splicing
 
 sample_mut_id = 'KRAS:12:25227343:G:T'
@@ -19,13 +19,8 @@ def oncosplice(mutation, sai_threshold=0.25, explicit=False):
     reports = []
     reference_transcript = Gene(mutation.gene).primary_transcript
     for i, new_boundaries in enumerate(develop_aberrant_splicing(reference_transcript.exons, aberrant_splicing.aberrant_splicing)):
-        variant_transcript = deepcopy(reference_transcript)
-        variant_transcript.transcript_seq, variant_transcript.indices = variant_transcript.generate_mature_mrna(mutations=mutation.mut_id.split('|'))
-        print(f"Var Exons: {variant_transcript.exons}")
-        variant_transcript.set_exons(new_boundaries).generate_translational_boundaries()
-        print(f"Var Exons: {variant_transcript.exons}")
+        variant_transcript = Transcript(reference_transcript.__dict__).set_exons(new_boundaries).generate_mature_mrna(mutations=mutation.mut_id.split('|'), inplace=True).generate_translational_boundaries()
 
-        # Generating data
         report = compare_transcripts(reference_transcript, variant_transcript, mutation)
         report['missplicing'] = bool(aberrant_splicing)
         report['aberrant_splicing'] = aberrant_splicing.aberrant_splicing
