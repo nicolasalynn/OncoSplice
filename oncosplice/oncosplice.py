@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 from Bio import pairwise2
 import re
-import json
-from copy import deepcopy
+# import json
+# from copy import deepcopy
 from geney import access_conservation_data
 from oncosplice.spliceai_utils import PredictSpliceAI
 from oncosplice.Gene import Gene, Transcript
@@ -11,16 +11,39 @@ from oncosplice.variant_utils import Variations, develop_aberrant_splicing
 
 sample_mut_id = 'KRAS:12:25227343:G:T'
 
-def oncosplice(mutation, sai_threshold=0.25, explicit=False):
+def oncosplice(mutation, sai_threshold=0.25, prevalence_threshold=0.25, primary_transcript=False):
     print(f'>> Processing: {mutation}')
     mutation = Variations(mutation)
     aberrant_splicing = PredictSpliceAI(mutation, sai_threshold)
 
+    gene = Gene(mutation.gene)
+    if primary_transcript:
+        reports = oncosplice_transcript(gene.primary_transcript, mutation, aberrant_splicing)
+    else:
+        reports = pd.concat([oncosplice_transcript(reference_transcript, mutation, aberrant_splicing) for
+                             reference_transcript in gene], axis=1)
+
+    # for i, new_boundaries in enumerate(develop_aberrant_splicing(reference_transcript.exons, aberrant_splicing.aberrant_splicing)):
+    #     variant_transcript = Transcript(reference_transcript.__dict__).set_exons(new_boundaries).generate_mature_mrna(mutations=mutation.mut_id.split('|'), inplace=True).generate_translational_boundaries()
+    #
+    #     report = compare_transcripts(reference_transcript, variant_transcript, mutation)
+    #     report['missplicing'] = bool(aberrant_splicing)
+    #     report['aberrant_splicing'] = aberrant_splicing.aberrant_splicing
+    #     report['isoform_prevalence'] = new_boundaries['path_weight']
+    #     report['mutation'] = mutation.mut_id
+    #     report.name = f'isoform_{i}'
+    #     reports.append(report)
+    #
+    # reports = pd.concat(reports, axis=1).transpose()
+    # reports['weighted_oncosplice'] = reports.legacy_oncosplice_score * reports.isoform_prevalence
+    reports = reports[reports.isoform_prevalence >= prevalence_threshold]
+    return reports
+
+
+def oncosplice_transcript(reference_transcript, mutation, aberrant_splicing):
     reports = []
-    reference_transcript = Gene(mutation.gene).primary_transcript
     for i, new_boundaries in enumerate(develop_aberrant_splicing(reference_transcript.exons, aberrant_splicing.aberrant_splicing)):
         variant_transcript = Transcript(reference_transcript.__dict__).set_exons(new_boundaries).generate_mature_mrna(mutations=mutation.mut_id.split('|'), inplace=True).generate_translational_boundaries()
-
         report = compare_transcripts(reference_transcript, variant_transcript, mutation)
         report['missplicing'] = bool(aberrant_splicing)
         report['aberrant_splicing'] = aberrant_splicing.aberrant_splicing
@@ -31,10 +54,9 @@ def oncosplice(mutation, sai_threshold=0.25, explicit=False):
 
     reports = pd.concat(reports, axis=1).transpose()
     reports['weighted_oncosplice'] = reports.legacy_oncosplice_score * reports.isoform_prevalence
-    if explicit:
-        return reports
-    else:
-        return reports.groupby('transcript_id').weighted_oncosplice.mean().max()
+    return reports
+def oncosplice_score(mutation, sai_threshold=0.5, prevalence_threshold=0.25, primary_transcript=False):
+    return oncosplice(mutation, sai_threshold=sai_threshold, prevalence_threshold=prevalence_threshold, primary_transcript=primary_transcript).groupby('transcript_id').weighted_oncosplice.mean().max()
 
 
 def compare_transcripts(reference_transcript, variant_transcript, mut):
@@ -67,7 +89,7 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
             distance_from_3 = abs(mut.start - in_start)
 
     report = reference_transcript.constructor
-    report.update({f'variant_{k}':v for k, v in variant_transcript.__dict__.items()})
+    report.update({f'variant_{k}':v for k, v in variant_transcript.constructor.items()})
 
     report['exon_changes'] = '|'.join([v for v in define_missplicing_events(reference_transcript.exons, variant_transcript.exons,
                               reference_transcript.rev)])

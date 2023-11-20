@@ -31,9 +31,6 @@ class Gene:
     def __len__(self):
         return len(self.transcripts)
 
-    def __getitem__(self, position):
-        return list(self.transcripts.keys())[position]
-
     def __str__(self):
         return '{gname}, {ntranscripts} transcripts'.format(gname=self.gene_name, ntranscripts=self.__len__())
 
@@ -42,6 +39,9 @@ class Gene:
         result = cls.__new__(cls)
         result.__dict__.update(self.__dict__)
         return result
+
+    def __getitem__(self, index):
+        return Transcript(list(self.transcripts.values())[index])
 
     def load_from_file(self, file_name):
         if not file_name.exists():
@@ -68,6 +68,7 @@ class Gene:
     def primary_transcript(self):
         temp = [k for k, v in self.transcripts.items() if 'Ensembl_canonical' in v['tag']]
         return self.generate_transcript(temp[0])
+
 
 class Transcript:
     def __init__(self, d=None):
