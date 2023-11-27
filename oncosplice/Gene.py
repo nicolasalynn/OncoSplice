@@ -69,6 +69,9 @@ class Gene:
         temp = [k for k, v in self.transcripts.items() if 'Ensembl_canonical' in v['tag']]
         return self.generate_transcript(temp[0])
 
+    def transcript(self, tid):
+        temp = [k for k, v in self.transcripts.items() if tid in k]
+        return self.generate_transcript(temp[0])
 
 class Transcript:
     def __init__(self, d=None):
