@@ -85,6 +85,9 @@ class Transcript:
         self.protein_seq = ''
         self.rev = None
         self.chrm = ''
+        self.pre_mrna = ''
+        self.orf = ''
+        self.protein = ''
         if d:
             self.load_from_dict(d)
 
@@ -194,10 +197,16 @@ class Transcript:
         for mutation in mutations:
             mutation = Mutation(mutation)
             seq, indices, _, _ = generate_mut_variant(seq, indices, mut=mutation)
+
+        self.pre_mrna, _ = self.__pos2sense(seq, indices)
         return seq, indices
 
-    def generate_pre_mrna(self, mutations=[]):
-        return self.__pos2sense(*self.generate_pre_mrna_pos(mutations))
+    def generate_pre_mrna(self, mutations=[], inplace=True):
+        pre_mrna, pre_indices = self.__pos2sense(*self.generate_pre_mrna_pos(mutations))
+        self.pre_mrna = pre_mrna
+        if inplace:
+            return self
+        return pre_mrna
 
     def generate_mature_mrna_pos(self, mutations=[]):
         mature_mrna, mature_indices = '', []
@@ -214,11 +223,16 @@ class Transcript:
             return self
         return self.__pos2sense(*self.generate_mature_mrna_pos(mutations))
 
-    def generate_protein(self):
+    def generate_protein(self, inplace=True):
         rel_start = self.transcript_indices.index(self.TIS)
         rel_end = self.transcript_indices.index(self.TTS)
         orf = self.transcript_seq[rel_start:rel_end + 1 + 3]
-        return str(Seq(orf).translate()).replace('*', '')
+        protein = str(Seq(orf).translate()) #.replace('*', '')
+        if inplace:
+            self.orf = orf
+            self.protein = protein
+            return self
+        return protein
 
     def generate_translational_boundaries(self):
         if self.TIS not in self.transcript_indices:

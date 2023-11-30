@@ -17,10 +17,10 @@ if sys.platform != 'darwin':
         'CONS_PATH': Path('/tamir1/nicolaslynn/data/Conservation/data'),
         'MISSPLICING_PATH': Path('/tamir2/nicolaslynn/experimental_data/variant_missplicing'),
         'TRANEX_PATH': Path('/tamir2/nicolaslynn/data/HumanProteinAtlas/tranex_sum_tpm_database/'),
-        'failed_mut_path': Path('/tamir2/nicolaslynn/temp/failed_oncosplice_mutations.txt')
+        'flag': '0'
 
     })
-
+    from oncosplice.oncosplice import oncosplice
 
 else:
     print('OncoSplice, meet Mac.')
@@ -31,7 +31,4 @@ else:
         'CHROM_SOURCE': Path('/Users/nl/Documents/data/Genomes/Human/human_hg38/Chromosome'),
         'MRNA_PATH': Path('/Users/nl/Documents/phd/projects/parse_genome_annotations/data/mrna_database_ensembl_v110/protein_coding'),
         'MISSPLICING_PATH': Path('/Users/nl/Downloads/'),
-
-        # 'failed_mut_path': Path('/')
-        # 'CONS_PATH': Path('/tamir1/nicolaslynn/data/Conservation/data'),
     })

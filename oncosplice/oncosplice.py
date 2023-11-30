@@ -32,7 +32,7 @@ def oncosplice(mutation, sai_threshold=0.25, prevalence_threshold=0.25, target_t
 def oncosplice_transcript(reference_transcript, mutation, aberrant_splicing, prevalence_threshold=0.0):
     reports = []
     for i, new_boundaries in enumerate(develop_aberrant_splicing(reference_transcript.exons, aberrant_splicing.aberrant_splicing)):
-        variant_transcript = Transcript(reference_transcript.__dict__).set_exons(new_boundaries).generate_mature_mrna(mutations=mutation.mut_id.split('|'), inplace=True).generate_translational_boundaries()
+        variant_transcript = Transcript(reference_transcript.__dict__).set_exons(new_boundaries).generate_mature_mrna(mutations=mutation.mut_id.split('|'), inplace=True).generate_translational_boundaries().generate_protein()
         report = compare_transcripts(reference_transcript, variant_transcript, mutation)
         report['missplicing'] = bool(aberrant_splicing)
         report['aberrant_splicing'] = aberrant_splicing.aberrant_splicing
@@ -45,24 +45,20 @@ def oncosplice_transcript(reference_transcript, mutation, aberrant_splicing, pre
     reports['weighted_oncosplice'] = reports.legacy_oncosplice_score * reports.isoform_prevalence
     reports = reports[reports.isoform_prevalence >= prevalence_threshold]
     return reports
-def oncosplice_score(mutation, sai_threshold=0.5, prevalence_threshold=0.25, primary_transcript=False):
-    return oncosplice(mutation, sai_threshold=sai_threshold, prevalence_threshold=prevalence_threshold, primary_transcript=primary_transcript).groupby('transcript_id').weighted_oncosplice.mean().max()
-
 
 def compare_transcripts(reference_transcript, variant_transcript, mut):
-    reference_protein, variant_protein = reference_transcript.generate_protein(), variant_transcript.generate_protein()
     cons_seq, cons_vector = access_conservation_data(reference_transcript.transcript_id)
     cons_seq = cons_seq.replace('*', '')
-    if cons_seq == reference_protein:
+    if cons_seq == reference_transcript.protein:
         cons_available = True
         cons_vector = cons_vector
     else:
         cons_available = False
-        cons_vector = [1] * len(reference_protein)
+        cons_vector = [1] * len(reference_transcript.protein)
 
-    alignment, num_ins, num_del = get_logical_alignment(reference_protein, variant_protein)
+    alignment, num_ins, num_del = get_logical_alignment(reference_transcript.protein, variant_transcript.protein)
     deleted, inserted, aligned, unified_seq = get_insertions_and_deletions(alignment)
-    window_length = min(76, len(reference_protein))
+    window_length = min(76, len(reference_transcript.protein))
     cons_vector = np.array(cons_vector, dtype=float)
 
     affected_exon, affected_intron, distance_from_5, distance_from_3 = None, None, None, None
@@ -83,18 +79,17 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
 
     report['exon_changes'] = '|'.join([v for v in define_missplicing_events(reference_transcript.exons, variant_transcript.exons,
                               reference_transcript.rev)])
-    report['ref_prot_length'] = len(reference_protein)
-    report['var_prot_length'] = len(variant_protein)
-    report['preservation'] = aligned/len(reference_protein)
+    report['ref_prot_length'] = len(reference_transcript.protein)
+    report['var_prot_length'] = len(variant_transcript.protein)
+    report['preservation'] = aligned/len(reference_transcript.protein)
     report['protein'] = unified_seq
     report['reference_mRNA'] = reference_transcript.transcript_seq
     report['variant_mRNA'] = variant_transcript.transcript_seq
     report['reference_CDS_start'] = reference_transcript.transcript_indices.index(reference_transcript.TIS)
     report['variant_CDS_start'] = variant_transcript.transcript_indices.index(variant_transcript.TIS)
-    # report['num_insertions'] = num_ins
-    # report['num_deletions'] = num_del
-    # report['insertions'] = json.dumps(inserted)
-    # report['deletions'] = json.dumps(deleted)
+    report['variant_pre_mrna'] = variant_transcript.pre_mrna
+    report['variant_ORF'] = variant_transcript.pre_mrna
+    report['variant_protein'] = variant_transcript.protein
     report['affected_exon'] = affected_exon
     report['affected_intron'] = affected_intron
     report['mutation_distance_from_5'] = distance_from_5

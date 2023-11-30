@@ -175,9 +175,10 @@ def find_new_tts(seq, indices, tis):
     pos_options = [i for i in list(range(0, len(seq), 3)) if seq[i:i + 3] in END_CODONS and i+3 <= len(seq)]
     if len(pos_options) == 0:
         return indices[0] #[len(seq) - (len(seq) % 3) - 1]
-    assert min(pos_options) % 3 == 0, f'{min(pos_options)} not divisible by three.'
-    return indices[min(pos_options) + 2]
-
+    pos_options = pos_options[0]
+    assert pos_options % 3 == 0, f'{pos_options} not divisible by three.'
+    pos_options -= 1
+    return indices[pos_options]
 
 def develop_aberrant_splicing(exons, aberrant_splicing):
     boundaries = [lst for lsts in [[a, b] for a, b in exons] for lst in lsts]
