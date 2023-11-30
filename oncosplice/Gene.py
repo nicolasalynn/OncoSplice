@@ -59,7 +59,7 @@ class Gene:
         return self
 
     def write_annotation_file(self, file_name):
-        with open(file_name, 'wb') as out:
+        with open(file_name, 'w') as out:
             json.dump(out, self.__dict__)
 
     def generate_transcript(self, tid):
