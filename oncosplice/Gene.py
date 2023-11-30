@@ -61,6 +61,7 @@ class Gene:
     def write_annotation_file(self, file_name):
         with open(file_name, 'wb') as out:
             json.dump(out, self.__dict__)
+
     def generate_transcript(self, tid):
         return Transcript(self.transcripts[tid])
 
@@ -82,7 +83,6 @@ class Transcript:
         self.acceptors, self.donors = [], []
         self.TIS, self.TTS = None, None
         self.transcript_seq, self.transcript_indices = '', []
-        self.protein_seq = ''
         self.rev = None
         self.chrm = ''
         self.pre_mrna = ''
@@ -125,10 +125,10 @@ class Transcript:
         return {k: v for k, v in self.__dict__.items() if k in core_attributes}
 
     def load_from_dict(self, data):
-        valid_attributes = ['chrm', 'transcript_id', 'transcript_name', 'transcript_type', 'transcript_start', 'transcript_end', 'donors', 'acceptors', 'TIS', 'TTS', 'protein_seq', 'transcript_seq', 'rev']
+        # valid_attributes = ['chrm', 'transcript_id', 'transcript_name', 'transcript_type', 'transcript_start', 'transcript_end', 'donors', 'acceptors', 'TIS', 'TTS', 'protein', 'transcript_seq', 'rev']
         for k, v in data.items():
-            if k in valid_attributes:
-                setattr(self, k, v)
+            # if k in valid_attributes:
+            setattr(self, k, v)
         self.__arrange_boundaries()
         self.generate_mature_mrna(inplace=True)
         return self
