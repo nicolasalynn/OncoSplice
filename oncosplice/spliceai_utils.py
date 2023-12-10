@@ -1,5 +1,5 @@
 
-from geney import * #reverse_complement, pull_fasta_seq_endpoints, get_correct_gene_file, unload_json, dump_json
+from geney import reverse_complement, pull_fasta_seq_endpoints, get_correct_gene_file, unload_json, dump_json
 from oncosplice import oncosplice_setup
 from oncosplice.variant_utils import generate_mut_variant
 

@@ -294,7 +294,7 @@ def calculate_oncosplice_scores(deletions, insertions, cons_vector, W=10):
     if max_score > 0:
         gof_prob = (max_score - tenth_largest_score) / max_score
         lof_prob = 1 - gof_prob
-        return {'gof': gof_prob, 'lof': lof_prob, 'pof': 0}
+        return {'gof': gof_prob, 'lof': lof_prob, 'pof': 0, 'oncosplice_score': max_score}
     else:
         return {'gof': 0, 'lof': 0, 'pof': 1, 'oncosplice_score': max_score}
 
