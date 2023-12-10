@@ -14,7 +14,7 @@ def oncosplice(mutation, sai_threshold=0.25, prevalence_threshold=0.25, target_t
     print(f'>> Processing: {mutation}')
     mutation = Variations(mutation)
     aberrant_splicing = PredictSpliceAI(mutation, threshold=sai_threshold)
-    gene = Gene(mutation.gene)
+    gene = Gene(mutation.gene, target_directory='/tamir2/nicolaslynn/projects/mutation_colabs/mrna_database')
 
     if target_transcripts:
         reports = pd.concat([oncosplice_transcript(gene.transcripts[transcript_id].generate_protein(), mutation, aberrant_splicing, prevalence_threshold) for
