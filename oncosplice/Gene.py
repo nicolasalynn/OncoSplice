@@ -1,8 +1,8 @@
 from copy import copy
-# from geney import *
-from geney import get_correct_gene_file, reverse_complement, pull_fasta_seq_endpoints
+from geney import *
+# from geney import get_correct_gene_file, reverse_complement, pull_fasta_seq_endpoints
 from Bio.Seq import Seq
-import json
+# import json
 from oncosplice.variant_utils import generate_mut_variant, Mutation, find_new_tis, find_new_tts
 from pathlib import Path
 from oncosplice import oncosplice_setup
