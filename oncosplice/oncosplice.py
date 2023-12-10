@@ -44,7 +44,6 @@ def oncosplice_transcript(reference_transcript, mutation, aberrant_splicing, pre
 
 def compare_transcripts(reference_transcript, variant_transcript, mut):
     cons_seq, cons_vector = access_conservation_data(reference_transcript.transcript_id)
-    # cons_seq = cons_seq.replace('*', '')
     if cons_seq == reference_transcript.protein:
         cons_available = True
         cons_vector = cons_vector
@@ -75,6 +74,7 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
 
     report['exon_changes'] = '|'.join([v for v in define_missplicing_events(reference_transcript.exons, variant_transcript.exons,
                               reference_transcript.rev)])
+    report['splicing_codes'] = 1
     report['ref_prot_length'] = len(reference_transcript.protein)
     report['var_prot_length'] = len(variant_transcript.protein)
     report['preservation'] = aligned/len(reference_transcript.protein)
