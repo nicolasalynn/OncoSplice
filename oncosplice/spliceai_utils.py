@@ -237,3 +237,4 @@ def check_splicing_difference(missplicing1, missplicing2, threshold=None):
                 td[k] = diff
         true_differences[event] = td
     return flag, true_differences
+

@@ -2,8 +2,6 @@ import numpy as np
 import pandas as pd
 from Bio import pairwise2
 import re
-# import json
-# from copy import deepcopy
 from geney import access_conservation_data
 from oncosplice.spliceai_utils import PredictSpliceAI
 from oncosplice.Gene import Gene, Transcript
@@ -15,8 +13,8 @@ def oncosplice(mutation, sai_threshold=0.25, prevalence_threshold=0.25, target_t
     print(f'>> Processing: {mutation}')
     mutation = Variations(mutation)
     aberrant_splicing = PredictSpliceAI(mutation, sai_threshold)
-
     gene = Gene(mutation.gene)
+
     if target_transcripts:
         reports = pd.concat([oncosplice_transcript(gene.transcripts[transcript_id], mutation, aberrant_splicing, prevalence_threshold) for
                              transcript_id in target_transcripts if gene.transcripts[transcript_id]['transcript_type'] == 'protein_coding'], axis=1)
@@ -25,9 +23,7 @@ def oncosplice(mutation, sai_threshold=0.25, prevalence_threshold=0.25, target_t
     else:
         reports = pd.concat([oncosplice_transcript(reference_transcript, mutation, aberrant_splicing, prevalence_threshold) for
                              reference_transcript in gene if reference_transcript.transcript_type == 'protein_coding'], axis=1)
-
     return reports
-
 
 def oncosplice_transcript(reference_transcript, mutation, aberrant_splicing, prevalence_threshold=0.0):
     reports = []
@@ -38,7 +34,7 @@ def oncosplice_transcript(reference_transcript, mutation, aberrant_splicing, pre
         report['aberrant_splicing'] = aberrant_splicing.aberrant_splicing
         report['isoform_prevalence'] = new_boundaries['path_weight']
         report['mutation'] = mutation.mut_id
-        report.name = f'isoform_{i}'
+        report['isoform'] = i
         reports.append(report)
 
     reports = pd.concat(reports, axis=1).transpose()
@@ -98,7 +94,6 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
     report['legacy_oncosplice_score'] = calculate_legacy_oncosplice_score(deleted, inserted, cons_vector,
                                                       window_length)
     report.update(calculate_oncosplice_scores(deleted, inserted, cons_vector))
-
     return pd.Series(report)
 
 def define_missplicing_events(ref_exons, var_exons, rev):
@@ -236,7 +231,6 @@ def get_insertions_and_deletions(alignment):
                 unified_string.append('<INS_START>')
             unified_string.append(ch_b)
 
-
     return deletions, insertions, len(aligned_pos), ''.join(unified_string)
 
 
@@ -282,25 +276,45 @@ def find_unmodified_positions(lp, deletions, insertions):
     # max_reach = 32 #W // 2
     for pos, insertion in insertions.items():
         reach = min(len(insertion) // 2, 38)
+        end = np.linspace(0, 1, reach).round(2)
+        start = end[::-1]
         # temp = [reach / i for i in range(1, reach//2)]
-        unmodified_positions[pos-reach:pos+reach+1] = 0
+        unmodified_positions[pos-reach:pos+reach+1] = np.concatenate([start, np.zeros(1), end])
 
     return unmodified_positions
-def calculate_oncosplice_scores(deletions, insertions, cons_vec):
-    unmodified_positions = find_unmodified_positions(len(cons_vec), deletions=deletions, insertions=insertions)
 
-    functional_loss_vector_5 = transform_conservation_vector(cons_vec, W=5) * (1 - unmodified_positions)
-    functional_loss_vector_5 = sum_conv(functional_loss_vector_5, W=5)
 
-    if len(cons_vec) < 76:
-        W=len(cons_vec)-1
+def calculate_oncosplice_scores(deletions, insertions, cons_vector, W=10):
+    modified_positions = 1 - find_unmodified_positions(len(cons_vector), deletions=deletions, insertions=insertions)
+    cons_vec, _ = transform_conservation_vector(cons_vector, W=W)
+    modified_cons_vector = cons_vec * modified_positions
+    modified_cons_vector = sum_conv(modified_cons_vector, W=W) / W
+    tenth_largest_score = sorted(list(modified_cons_vector.flatten().tolist()))[-W*2]
+    max_score = max(modified_cons_vector)
+    gof_prob = (max_score - tenth_largest_score)/max_score
+    lof_prob = 1 - gof_prob
+
+    if max_score == 0:
+        return {'gof': gof_prob, 'lof': lof_prob, 'pof': 0}
+
     else:
-        W = 76
+        return {'gof': 0, 'lof': 0, 'pof': 1}
 
-    functional_loss_vector_76 = transform_conservation_vector(cons_vec, W=W) * (1 - unmodified_positions)
-    functional_loss_vector_76 = sum_conv(functional_loss_vector_76, W=W)
 
-    return {'oncosplice_score_lof': max(functional_loss_vector_76), 'oncosplice_score_gof': max(functional_loss_vector_5)}
+# def calculate_oncosplice_scores(deletions, insertions, cons_vec):
+#     unmodified_positions = find_unmodified_positions(len(cons_vec), deletions=deletions, insertions=insertions)
+#     functional_loss_vector_5 = transform_conservation_vector(cons_vec, W=5) * (1 - unmodified_positions)
+#     functional_loss_vector_5 = sum_conv(functional_loss_vector_5, W=5)
+#
+#     if len(cons_vec) < 76:
+#         W=len(cons_vec)-1
+#     else:
+#         W = 76
+#
+#     functional_loss_vector_76 = transform_conservation_vector(cons_vec, W=W) * (1 - unmodified_positions)
+#     functional_loss_vector_76 = sum_conv(functional_loss_vector_76, W=W)
+#
+#     return {'oncosplice_score_lof': max(functional_loss_vector_76), 'oncosplice_score_gof': max(functional_loss_vector_5)}
 
 
     # return {'cons_vec': np.array2string(np.around(cons_vec), 3), 'lof_score': abs(min(0, s.min())), 'gof_score': max(0, s.max()), 'oncosplice_score': sum(stemp)/len(cons_vec)}

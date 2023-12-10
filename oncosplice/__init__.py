@@ -20,7 +20,7 @@ if sys.platform != 'darwin':
         'flag': '0'
 
     })
-    # from oncosplice.oncosplice import oncosplice
+    from oncosplice.oncosplice import oncosplice
 
 else:
     print('OncoSplice, meet Mac.')

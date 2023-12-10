@@ -1,56 +1,10 @@
-import numpy as np
+# import numpy as np
 import networkx as nx
 import random
 from pathlib import Path
 from dataclasses import dataclass
 from geney import is_monotonic
 from geney.genomic.translation import END_CODONS
-
-def check_pairwise_variant_compatibility(mut1, mut2):
-    if mut1 == mut2:
-        return True
-    if mut1.vartype == 'DEL':
-        deleted_positions1 = list(range(mut1.start, mut1.start + len(mut1.ref)))
-    else:
-        deleted_positions1 = []
-    if mut2.vartype == 'DEL':
-        deleted_positions2 = list(range(mut2.start, mut2.start + len(mut2.ref)))
-    else:
-        deleted_positions2 = []
-
-    if mut1.vartype == 'SNP':
-        snp_pos1 = mut1.start
-    else:
-        snp_pos1 = 0
-    if mut2.vartype == 'SNP':
-        snp_pos2 = mut2.start
-    else:
-        snp_pos2 = 0
-
-    if mut1.vartype == 'INS':
-        ins_pos1 = mut1.start
-    else:
-        ins_pos1 = 0
-    if mut2.vartype == 'INS':
-        ins_pos2 = mut2.start
-    else:
-        ins_pos2 = 0
-
-    if snp_pos1 == snp_pos2 != 0:
-        return False
-
-    if snp_pos1 in deleted_positions2 or snp_pos2 in deleted_positions1:
-        return False
-
-    if ins_pos1 == ins_pos2 != 0:
-        return False
-
-    if len(np.intersect1d(deleted_positions1, deleted_positions2)) > 0:
-        return False
-
-    return True
-def check_variant_compatibility(mutations):
-    return all([check_pairwise_variant_compatibility(mut1, mut2) for mut1 in mutations for mut2 in mutations])
 
 
 class Mutation:
@@ -119,9 +73,9 @@ class Variations:
             return x
         raise StopIteration
 
-    @property
-    def congruent(self):
-        return check_variant_compatibility(self.variants)
+    # @property
+    # def congruent(self):
+    #     return check_variant_compatibility(self.variants)
 
     @property
     def file_identifier_json(self):
@@ -274,19 +228,6 @@ def path_weight_mult(G, path, weight):
     return cost
 
 
-def generate_random_as(t):
-    ma = random.sample(t.acceptors, 1)[0]
-    md = random.sample(t.donors, 1)[0]
-    da = random.sample(list(range(min(t.acceptors), max(t.acceptors))), 1)[0]
-    dd = random.sample(list(range(min(t.donors), max(t.donors))), 1)[0]
-    return {
-        'discovered_acceptors': {da: {'absolute': 0.9}},
-        'discovered_donors': {dd: {'absolute': 0.6}},
-        'missed_donors': {ma: {'absolute': 0.2}},
-        'missed_acceptors': {md: {'absolute': 0.1}},
-    }
-
-
 @dataclass
 class SpliceSite(object):
     pos: int
@@ -298,6 +239,18 @@ class SpliceSite(object):
 
     def __lt__(self, other):
         return self.pos < other.pos
+
+def generate_random_as(transcript):
+    ma = random.sample(transcript.acceptors, 1)[0]
+    md = random.sample(transcript.donors, 1)[0]
+    da = random.sample(list(range(min(transcript.acceptors), max(transcript.acceptors))), 1)[0]
+    dd = random.sample(list(range(min(transcript.donors), max(transcript.donors))), 1)[0]
+    return {
+        'discovered_acceptors': {da: {'absolute': 0.9}},
+        'discovered_donors': {dd: {'absolute': 0.6}},
+        'missed_donors': {ma: {'absolute': 0.2}},
+        'missed_acceptors': {md: {'absolute': 0.1}},
+    }
 
 # def generate_mut_variant(seq: str, indices: list, mut: Mutation):
 #     offset = 1 if not mut.ref else 0
@@ -326,3 +279,50 @@ class SpliceSite(object):
 #
 #     assert len(new_seq) == len(new_indices), f'Error in variant modification: {mut}, {len(new_seq)}, {len(new_indices)}'
 #     return new_seq, new_indices, True, consensus_allele
+
+
+# def check_pairwise_variant_compatibility(mut1, mut2):
+#     if mut1 == mut2:
+#         return True
+#     if mut1.vartype == 'DEL':
+#         deleted_positions1 = list(range(mut1.start, mut1.start + len(mut1.ref)))
+#     else:
+#         deleted_positions1 = []
+#     if mut2.vartype == 'DEL':
+#         deleted_positions2 = list(range(mut2.start, mut2.start + len(mut2.ref)))
+#     else:
+#         deleted_positions2 = []
+#
+#     if mut1.vartype == 'SNP':
+#         snp_pos1 = mut1.start
+#     else:
+#         snp_pos1 = 0
+#     if mut2.vartype == 'SNP':
+#         snp_pos2 = mut2.start
+#     else:
+#         snp_pos2 = 0
+#
+#     if mut1.vartype == 'INS':
+#         ins_pos1 = mut1.start
+#     else:
+#         ins_pos1 = 0
+#     if mut2.vartype == 'INS':
+#         ins_pos2 = mut2.start
+#     else:
+#         ins_pos2 = 0
+#
+#     if snp_pos1 == snp_pos2 != 0:
+#         return False
+#
+#     if snp_pos1 in deleted_positions2 or snp_pos2 in deleted_positions1:
+#         return False
+#
+#     if ins_pos1 == ins_pos2 != 0:
+#         return False
+#
+#     if len(np.intersect1d(deleted_positions1, deleted_positions2)) > 0:
+#         return False
+#
+#     return True
+# def check_variant_compatibility(mutations):
+#     return all([check_pairwise_variant_compatibility(mut1, mut2) for mut1 in mutations for mut2 in mutations])

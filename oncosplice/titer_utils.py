@@ -11,17 +11,9 @@ import re
 import pickle
 from scipy.stats import percentileofscore
 from Bio import pairwise2
-
 from keras.constraints import maxnorm
 from keras.layers import Conv1D, MaxPool1D, LSTM, Dropout, Flatten, Dense, Activation
-# from keras.layers import GRU
 from keras import Sequential, Input
-from keras.constraints import maxnorm
-from keras.layers import Conv1D, MaxPool1D, LSTM, Dropout, Flatten, Dense, Activation
-# from keras.layers import GRU
-from keras import Sequential, Input
-
-
 
 def run_through_titer_adaptor(ref_cds, var_cds):
     new_cds_start, titer_score, _, _, _ = run_through_titer(mut_seq=var_cds.mature_mrna,

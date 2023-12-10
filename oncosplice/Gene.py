@@ -8,7 +8,7 @@ file = Path('/Users/nl/Documents/phd/data/ensembl/mRNAs/protein_coding/mrnas_ENS
 
 class Gene:
 
-    def __init__(self, gene_name=None, file=None, dict_data=None):
+    def __init__(self, gene_name=None, file=None, dict_data=None, target_directory=oncosplice_setup['MRNA_PATH']):
         self.gene_name = gene_name
         self.gene_id = ''
         self.rev = None
@@ -17,7 +17,7 @@ class Gene:
         self.gene_end = 0
         self.transcripts = {}
         if gene_name:
-            file = get_correct_gene_file(gene_name, target_directory=oncosplice_setup['MRNA_PATH'])
+            file = get_correct_gene_file(gene_name, target_directory=target_directory)
             if file.exists():
                 self.load_from_file(file)
         elif dict_data:
@@ -52,10 +52,8 @@ class Gene:
         return self
 
     def load_from_dict(self, dict_data=None):
-        valid_attributes = ['gene_name', 'gene_id', 'rev', 'chrm', 'gene_start', 'gene_end', 'transcripts']
         for k, v in dict_data.items():
-            if k in valid_attributes:
-                setattr(self, k, v)
+            setattr(self, k, v)
         return self
 
     def write_annotation_file(self, file_name):
@@ -67,7 +65,7 @@ class Gene:
 
     @property
     def primary_transcript(self):
-        temp = [k for k, v in self.transcripts.items() if 'Ensembl_canonical' in v['tag']]
+        temp = [k for k, v in self.transcripts.items() if v.get('primary_transcript', False) or ('Ensembl_canonical' in v['tag'] and ('CCDS' in v['tag']))]
         return self.generate_transcript(temp[0])
 
     def transcript(self, tid):
@@ -125,9 +123,7 @@ class Transcript:
         return {k: v for k, v in self.__dict__.items() if k in core_attributes}
 
     def load_from_dict(self, data):
-        # valid_attributes = ['chrm', 'transcript_id', 'transcript_name', 'transcript_type', 'transcript_start', 'transcript_end', 'donors', 'acceptors', 'TIS', 'TTS', 'protein', 'transcript_seq', 'rev']
         for k, v in data.items():
-            # if k in valid_attributes:
             setattr(self, k, v)
         self.__arrange_boundaries()
         self.generate_mature_mrna(inplace=True)
@@ -145,7 +141,6 @@ class Transcript:
     @property
     def introns(self):
         return list(zip([v for v in self.donors if v != self.transcript_end], [v for v in self.acceptors if v != self.transcript_start]))
-
 
     def __exon_coverage_check(self):
         if sum([abs(a-b) + 1 for a, b in self.exons]) == len(self):
@@ -227,7 +222,7 @@ class Transcript:
         rel_start = self.transcript_indices.index(self.TIS)
         rel_end = self.transcript_indices.index(self.TTS)
         orf = self.transcript_seq[rel_start:rel_end + 1 + 3]
-        protein = str(Seq(orf).translate()) #.replace('*', '')
+        protein = str(Seq(orf).translate())
         if inplace:
             self.orf = orf
             self.protein = protein
