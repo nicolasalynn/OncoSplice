@@ -173,7 +173,7 @@ class PredictSpliceAI:
     def __str__(self):
         return self.aberrant_splicing
     def __bool__(self):
-        for event, details in self.missplicing.items():
+        for event, details in self.aberrant_splicing.items():
             if details:
                 return True
         return False

@@ -12,7 +12,7 @@ sample_mut_id = 'KRAS:12:25227343:G:T'
 def oncosplice(mutation, sai_threshold=0.25, prevalence_threshold=0.25, target_transcripts=None, primary_transcript=False):
     print(f'>> Processing: {mutation}')
     mutation = Variations(mutation)
-    aberrant_splicing = PredictSpliceAI(mutation, sai_threshold)
+    aberrant_splicing = PredictSpliceAI(mutation, threshold=sai_threshold)
     gene = Gene(mutation.gene)
 
     if target_transcripts:
