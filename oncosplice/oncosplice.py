@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from Bio import pairwise2
 import re
+from copy import deepcopy
 from geney import access_conservation_data
 from oncosplice.spliceai_utils import PredictSpliceAI
 from oncosplice.Gene import Gene, Transcript
@@ -28,8 +29,7 @@ def oncosplice(mutation, sai_threshold=0.25, prevalence_threshold=0.25, target_t
 def oncosplice_transcript(reference_transcript, mutation, aberrant_splicing, prevalence_threshold=0.0):
     reports = []
     for i, new_boundaries in enumerate(develop_aberrant_splicing(reference_transcript.exons, aberrant_splicing.aberrant_splicing)):
-        print(new_boundaries)
-        variant_transcript = Transcript(reference_transcript.__dict__).set_exons(new_boundaries).generate_mature_mrna(mutations=mutation.mut_id.split('|'), inplace=True).generate_translational_boundaries().generate_protein()
+        variant_transcript = Transcript(deepcopy(reference_transcript).__dict__).set_exons(new_boundaries).generate_mature_mrna(mutations=mutation.mut_id.split('|'), inplace=True).generate_translational_boundaries().generate_protein()
         report = compare_transcripts(reference_transcript, variant_transcript, mutation)
         report['missplicing'] = bool(aberrant_splicing)
         report['aberrant_splicing'] = aberrant_splicing.aberrant_splicing
@@ -75,6 +75,7 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
 
     descriptions = define_missplicing_events(reference_transcript.exons, variant_transcript.exons,
                               reference_transcript.rev)
+
     report['exon_changes'] = '|'.join([v for v in descriptions])
     report['splicing_codes'] = summarize_missplicing_event(*descriptions)
     report['ref_prot_length'] = len(reference_transcript.protein)
@@ -99,8 +100,6 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
     return pd.Series(report)
 
 def define_missplicing_events(ref_exons, var_exons, rev):
-    print(ref_exons)
-    print(var_exons)
     ref_introns = [(ref_exons[i][1], ref_exons[i + 1][0]) for i in range(len(ref_exons) - 1)]
     var_introns = [(var_exons[i][1], var_exons[i + 1][0]) for i in range(len(var_exons) - 1)]
     num_ref_exons = len(ref_exons)
