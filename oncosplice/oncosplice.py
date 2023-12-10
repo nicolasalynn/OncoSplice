@@ -16,12 +16,12 @@ def oncosplice(mutation, sai_threshold=0.25, prevalence_threshold=0.25, target_t
     gene = Gene(mutation.gene)
 
     if target_transcripts:
-        reports = pd.concat([oncosplice_transcript(gene.transcripts[transcript_id], mutation, aberrant_splicing, prevalence_threshold) for
+        reports = pd.concat([oncosplice_transcript(gene.transcripts[transcript_id].generate_protein(), mutation, aberrant_splicing, prevalence_threshold) for
                              transcript_id in target_transcripts if gene.transcripts[transcript_id]['transcript_type'] == 'protein_coding'], axis=1)
     elif primary_transcript:
         reports = oncosplice_transcript(gene.primary_transcript.generate_protein(), mutation, aberrant_splicing, prevalence_threshold)
     else:
-        reports = pd.concat([oncosplice_transcript(reference_transcript, mutation, aberrant_splicing, prevalence_threshold) for
+        reports = pd.concat([oncosplice_transcript(reference_transcript.generate_protein(), mutation, aberrant_splicing, prevalence_threshold) for
                              reference_transcript in gene if reference_transcript.transcript_type == 'protein_coding'], axis=1)
     return reports
 
@@ -298,7 +298,7 @@ def calculate_oncosplice_scores(deletions, insertions, cons_vector, W=10):
         return {'gof': gof_prob, 'lof': lof_prob, 'pof': 0}
 
     else:
-        return {'gof': 0, 'lof': 0, 'pof': 1}
+        return {'gof': 0, 'lof': 0, 'pof': 1, 'oncosplice_score': max_score}
 
 
 # def calculate_oncosplice_scores(deletions, insertions, cons_vec):
