@@ -287,7 +287,7 @@ def find_unmodified_positions(lp, deletions, insertions):
 
 def calculate_oncosplice_scores(deletions, insertions, cons_vector, W=10):
     modified_positions = 1 - find_unmodified_positions(len(cons_vector), deletions=deletions, insertions=insertions)
-    cons_vec, _ = transform_conservation_vector(cons_vector, W=W)
+    cons_vec = transform_conservation_vector(cons_vector, W=W)
     modified_cons_vector = cons_vec * modified_positions
     modified_cons_vector = sum_conv(modified_cons_vector, W=W) / W
     tenth_largest_score = sorted(list(modified_cons_vector.flatten().tolist()))[-W*2]
