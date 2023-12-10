@@ -72,9 +72,10 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
     report = reference_transcript.constructor
     report.update({f'variant_{k}':v for k, v in variant_transcript.constructor.items()})
 
-    report['exon_changes'] = '|'.join([v for v in define_missplicing_events(reference_transcript.exons, variant_transcript.exons,
-                              reference_transcript.rev)])
-    report['splicing_codes'] = 1
+    descriptions = define_missplicing_events(reference_transcript.exons, variant_transcript.exons,
+                              reference_transcript.rev)
+    report['exon_changes'] = '|'.join([v for v in descriptions])
+    report['splicing_codes'] = summarize_missplicing_event(*descriptions)
     report['ref_prot_length'] = len(reference_transcript.protein)
     report['var_prot_length'] = len(variant_transcript.protein)
     report['preservation'] = aligned/len(reference_transcript.protein)
@@ -145,7 +146,6 @@ def summarize_missplicing_event(pes, pir, es, ne, ir):
         event.append('IR')
     if ne:
         event.append('NE')
-
     if len(event) > 1:
         return event
     elif len(event) == 1:
@@ -187,11 +187,11 @@ def get_insertions_and_deletions(alignment):
             if last_event == 'DEL':
                 deletions[del_start_pos] += ch_a
             elif last_event == 'ALIGN':
-                last_event = 'DEL'
+                last_event = 'MM'
                 del_start_pos = ref_map[rel_pos]
                 deletions[del_start_pos] = ch_a
             elif last_event == 'INS':
-                last_event = 'DEL'
+                last_event = 'MM'
                 del_start_pos = ref_map[rel_pos]
                 deletions[del_start_pos] = ch_a
 
@@ -213,7 +213,6 @@ def get_insertions_and_deletions(alignment):
                 unified_string.append('<INS_END>')
                 unified_string.append('<DEL_START>')
             unified_string.append(ch_a)
-
 
         elif ch_b != ch_a == '-':
             point_of_insertion = find_last_real_pos(rel_pos, ref_map)
