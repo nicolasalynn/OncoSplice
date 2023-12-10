@@ -1,6 +1,8 @@
 from copy import copy
-from geney import *
+# from geney import *
+from geney import get_correct_gene_file, reverse_complement, pull_fasta_seq_endpoints
 from Bio.Seq import Seq
+import json
 from oncosplice.variant_utils import generate_mut_variant, Mutation, find_new_tis, find_new_tts
 from pathlib import Path
 from oncosplice import oncosplice_setup
@@ -231,7 +233,11 @@ class Transcript:
 
     def generate_translational_boundaries(self):
         if self.TIS not in self.transcript_indices:
-            self.TIS = find_new_tis(self.transcript_seq, self.transcript_indices, self.TIS, self.TTS)
+            if 'ATG' in self.transcript_seq:
+                self.TIS = self.transcript_indices[self.transcript_seq.index('ATG')]
+            else:
+                self.TIS = self.transcript_indices[0]
+            # self.TIS = find_new_tis(self.transcript_seq, self.transcript_indices, self.TIS, self.TTS)
         self.TTS = find_new_tts(self.transcript_seq, self.transcript_indices, self.TIS)
         return self
 
