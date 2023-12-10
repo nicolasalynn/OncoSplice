@@ -113,15 +113,16 @@ def generate_mut_variant(seq: str, indices: list, mut: Mutation):
     return new_seq, new_indices, True, consensus_allele
 
 def find_new_tis(seq, indices, tis, tts, tid='', data_path='/tamir2/shaicohen1/share/titer-master'):
-    from oncosplice.titer_utils import run_through_titer
-    new_tis, _, _, _, _ = run_through_titer(mut_seq=seq,
-                                           mut_coords=indices,
-                                           ref_sc_coord=tis,
-                                           ref_tts_coord=tts,
-                                           ref_id=tid,
-                                           data_path=data_path,
-                                           titer_model='',
-                                           all_test_seqs={})
+    return seq[0]
+    # from oncosplice.titer_utils import run_through_titer
+    # new_tis, _, _, _, _ = run_through_titer(mut_seq=seq,
+    #                                        mut_coords=indices,
+    #                                        ref_sc_coord=tis,
+    #                                        ref_tts_coord=tts,
+    #                                        ref_id=tid,
+    #                                        data_path=data_path,
+    #                                        titer_model='',
+    #                                        all_test_seqs={})
     return new_tis
 
 def find_new_tts(seq, indices, tis):
