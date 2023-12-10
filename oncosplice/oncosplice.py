@@ -46,7 +46,6 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
     cons_seq, cons_vector = access_conservation_data(reference_transcript.transcript_id)
     # cons_seq = cons_seq.replace('*', '')
     if cons_seq == reference_transcript.protein:
-        print(cons_vector)
         cons_available = True
         cons_vector = cons_vector
     else:
@@ -55,8 +54,6 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
 
     alignment, num_ins, num_del = get_logical_alignment(reference_transcript.protein, variant_transcript.protein)
     deleted, inserted, aligned, unified_seq = get_insertions_and_deletions(alignment)
-    print(deleted)
-    print(inserted)
     window_length = min(76, len(reference_transcript.protein))
     cons_vector = np.array(cons_vector, dtype=float)
 
@@ -294,11 +291,10 @@ def calculate_oncosplice_scores(deletions, insertions, cons_vector, W=10):
     modified_cons_vector = sum_conv(modified_cons_vector, W=W) / W
     tenth_largest_score = sorted(list(modified_cons_vector.flatten().tolist()))[-W*2]
     max_score = max(modified_cons_vector)
-    print(max_score, tenth_largest_score)
     gof_prob = (max_score - tenth_largest_score)/max_score
     lof_prob = 1 - gof_prob
 
-    if max_score == 0:
+    if max_score > 0:
         return {'gof': gof_prob, 'lof': lof_prob, 'pof': 0}
 
     else:
