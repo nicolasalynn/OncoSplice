@@ -70,25 +70,28 @@ def compare_transcripts(reference_transcript, variant_transcript, mut):
             distance_from_5 = abs(mut.start - in_end)
             distance_from_3 = abs(mut.start - in_start)
 
-    report = reference_transcript.constructor
-    report.update({f'variant_{k}':v for k, v in variant_transcript.constructor.items()})
-
-    descriptions = define_missplicing_events(reference_transcript.exons, variant_transcript.exons,
-                              reference_transcript.rev)
-
-    report['exon_changes'] = '|'.join([v for v in descriptions])
-    report['splicing_codes'] = summarize_missplicing_event(*descriptions)
-    report['ref_prot_length'] = len(reference_transcript.protein)
-    report['var_prot_length'] = len(variant_transcript.protein)
-    report['preservation'] = aligned/len(reference_transcript.protein)
-    report['protein'] = unified_seq
+    report = {f'reference_{k}': v for k, v in reference_transcript.constructor.items()}
     report['reference_mRNA'] = reference_transcript.transcript_seq
-    report['variant_mRNA'] = variant_transcript.transcript_seq
     report['reference_CDS_start'] = reference_transcript.transcript_indices.index(reference_transcript.TIS)
+    report['reference_pre_mrna'] = reference_transcript.pre_mrna
+    report['reference_ORF'] = reference_transcript.pre_mrna
+    report['reference_protein'] = reference_transcript.protein
+
+    report.update({f'variant_{k}': v for k, v in variant_transcript.constructor.items()})
+    report['variant_mRNA'] = variant_transcript.transcript_seq
     report['variant_CDS_start'] = variant_transcript.transcript_indices.index(variant_transcript.TIS)
     report['variant_pre_mrna'] = variant_transcript.pre_mrna
     report['variant_ORF'] = variant_transcript.pre_mrna
     report['variant_protein'] = variant_transcript.protein
+
+    report['protein_view'] = unified_seq
+    descriptions = define_missplicing_events(reference_transcript.exons, variant_transcript.exons,
+                              reference_transcript.rev)
+    report['exon_changes'] = '|'.join([v for v in descriptions if v])
+    report['splicing_codes'] = summarize_missplicing_event(*descriptions)
+    report['ref_prot_length'] = len(reference_transcript.protein)
+    report['var_prot_length'] = len(variant_transcript.protein)
+    report['preservation'] = aligned/len(reference_transcript.protein)
     report['affected_exon'] = affected_exon
     report['affected_intron'] = affected_intron
     report['mutation_distance_from_5'] = distance_from_5
