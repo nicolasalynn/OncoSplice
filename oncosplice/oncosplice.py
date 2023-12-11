@@ -36,7 +36,7 @@ def oncosplice(mutation, sai_threshold=0.25, prevalence_threshold=0.25, target_t
 
 def oncosplice_transcript(reference_transcript, mutation, aberrant_splicing, prevalence_threshold=0.0):
     reports = []
-    for i, new_boundaries in enumerate(develop_aberrant_splicing(reference_transcript.exons, aberrant_splicing.aberrant_splicing)):
+    for i, new_boundaries in enumerate(develop_aberrant_splicing(reference_transcript, aberrant_splicing.aberrant_splicing)):
         variant_transcript = Transcript(deepcopy(reference_transcript).__dict__).set_exons(new_boundaries).generate_mature_mrna(mutations=mutation.mut_id.split('|'), inplace=True).generate_translational_boundaries().generate_protein()
         report = compare_transcripts(reference_transcript, variant_transcript, mutation)
         report['missplicing'] = bool(aberrant_splicing)
