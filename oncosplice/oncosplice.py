@@ -298,6 +298,7 @@ def find_unmodified_positions(lp, deletions, insertions):
             fill_pos = end_pos - (pos-reach)
             unmodified_positions[pos-reach:] = filler[:fill_pos]
         else:
+            print(pos-reach, back_end, len(filler))
             unmodified_positions[pos-reach:back_end] = filler
 
     return unmodified_positions
