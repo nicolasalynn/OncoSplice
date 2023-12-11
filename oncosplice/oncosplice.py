@@ -3,18 +3,26 @@ import pandas as pd
 from Bio import pairwise2
 import re
 from copy import deepcopy
-from geney import access_conservation_data
+from pathlib import Path
+from geney import access_conservation_data, get_correct_gene_file
 from oncosplice.spliceai_utils import PredictSpliceAI
 from oncosplice.Gene import Gene, Transcript
 from oncosplice.variant_utils import Variations, develop_aberrant_splicing
 
 sample_mut_id = 'KRAS:12:25227343:G:T'
 
-def oncosplice(mutation, sai_threshold=0.25, prevalence_threshold=0.25, target_transcripts=None, primary_transcript=False):
+def oncosplice(mutation, sai_threshold=0.25, prevalence_threshold=0.25, target_transcripts=None, primary_transcript=False, target_directory=Path('/tamir2/nicolaslynn/projects/mutation_colabs/mrna_database')):
     print(f'>> Processing: {mutation}')
     mutation = Variations(mutation)
+    # file = get_correct_gene_file(mutation.gene, target_directory=target_directory)
+    file = [f for f in target_directory.glob(f'mrna_*_{mutation.gene}.json')]
+    if len(file) == 1:
+        file = file[0]
+    else:
+        return None
+
+    gene = Gene(file=file)
     aberrant_splicing = PredictSpliceAI(mutation, threshold=sai_threshold)
-    gene = Gene(mutation.gene, target_directory='/tamir2/nicolaslynn/projects/mutation_colabs/mrna_database')
 
     if target_transcripts:
         reports = pd.concat([oncosplice_transcript(gene.transcripts[transcript_id].generate_protein(), mutation, aberrant_splicing, prevalence_threshold) for
