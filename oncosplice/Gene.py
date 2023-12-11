@@ -67,7 +67,7 @@ class Gene:
 
     @property
     def primary_transcript(self):
-        temp = [k for k, v in self.transcripts.items() if v.get('primary_transcript', False) or ('Ensembl_canonical' in v['tag'] and ('CCDS' in v['tag']))]
+        temp = [k for k, v in self.transcripts.items() if v.get('primary_transcript', False) or ('Ensembl_canonical' in v.get('tag', '') and ('CCDS' in v.get('tag', '')))]
         return self.generate_transcript(temp[0])
 
     def transcript(self, tid):
