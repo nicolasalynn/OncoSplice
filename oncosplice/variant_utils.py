@@ -135,48 +135,31 @@ def find_new_tts(seq, indices, tis):
     pos_options -= 1
     return indices[pos_options]
 
-def develop_aberrant_splicing(exons, aberrant_splicing):
-    boundaries = [lst for lsts in [[a, b] for a, b in exons] for lst in lsts]
-    exon_starts, exon_ends = list(zip(*exons))
+def develop_aberrant_splicing(transcript, aberrant_splicing):
+    boundaries = [lst for lsts in [[a, b] for a, b in transcript.exons] for lst in lsts]
+    exon_starts, exon_ends = list(zip(*transcript.exons))
     transcript_start, transcript_end = exon_starts[0], exon_ends[-1]
-
-    if exon_starts[0] > exon_ends[0]:
-        rev = True
-    else:
-        rev = False
-
+    next_exon_end = exon_ends[-2]
+    rev = transcript.rev
     upper_range, lower_range = max(boundaries), min(boundaries)
     exon_starts = {v: 1 for v in exon_starts}
     exon_ends = {v: 1 for v in exon_ends}
-
     for k, v in aberrant_splicing.get('missed_donors', {}).items():
         if k in exon_ends.keys():
             exon_ends[k] = max(v['absolute'], 0.001)
-
     exon_ends.update(
         {k: v['absolute'] for k, v in aberrant_splicing.get('discovered_donors', {}).items() if lower_range <= k <= upper_range})
-
     for k, v in aberrant_splicing.get('missed_acceptors', {}).items():
         if k in exon_starts.keys():
             exon_starts[k] = max(v['absolute'], 0.001)
-
     exon_starts.update(
         {k: v['absolute'] for k, v in aberrant_splicing.get('discovered_acceptors', {}).items() if lower_range <= k <= upper_range})
-
     nodes = [SpliceSite(pos=pos, ss_type=0, prob=prob) for pos, prob in exon_ends.items() if
              lower_range <= pos <= upper_range] + \
             [SpliceSite(pos=pos, ss_type=1, prob=prob) for pos, prob in exon_starts.items() if
              lower_range <= pos <= upper_range]
-
     nodes = [s for s in nodes if s.prob > 0]
     nodes.sort(key=lambda x: x.pos, reverse=rev)
-
-    # while nodes[0].ss_type == 0:
-    #     nodes = nodes[1:]
-    #
-    # while nodes[-1].ss_type == 1:
-    #     nodes = nodes[:-1]
-
     G = nx.DiGraph()
     G.add_nodes_from([n.pos for n in nodes])
     for i in range(len(nodes)):
@@ -185,22 +168,42 @@ def develop_aberrant_splicing(exons, aberrant_splicing):
             curr_node, next_node = nodes[i], nodes[j]
             spread = curr_node.ss_type in in_between
             in_between.append(next_node.ss_type)
-
             if curr_node.ss_type != next_node.ss_type:
                 if spread:
                     new_prob = next_node.prob - trailing_prob
                     if new_prob <= 0:
                         break
-
                     G.add_edge(curr_node.pos, next_node.pos)
                     G.edges[curr_node.pos, next_node.pos]['weight'] = new_prob
                     trailing_prob += next_node.prob
-
                 else:
                     G.add_edge(curr_node.pos, next_node.pos)
                     G.edges[curr_node.pos, next_node.pos]['weight'] = next_node.prob
                     trailing_prob += next_node.prob
-
+    # backward pass where we check
+    # nodes = nodes[::-1]
+    # for i in range(len(nodes)):
+    #     trailing_prob, in_between = 0, []
+    #     for j in range(i + 1, len(nodes)):
+    #         curr_node, next_node = nodes[i], nodes[j]
+    #         spread = curr_node.ss_type in in_between
+    #         in_between.append(next_node.ss_type)
+    #         if curr_node.ss_type != next_node.ss_type:
+    #             if spread:
+    #                 new_prob = next_node.prob - trailing_prob
+    #                 if new_prob <= 0:
+    #                     break
+    #                 G.add_edge(next_node.pos, curr_node.pos)
+    #                 print(curr_node, next_node)
+    #                 G.edges[next_node.pos, curr_node.pos]['weight'] = new_prob
+    #                 print(f"Setting Prob: {new_prob}")
+    #                 trailing_prob += next_node.prob
+    #             else:
+    #                 # G.add_edge(curr_node.pos, next_node.pos)
+    #                 print(curr_node, next_node)
+    #                 G.edges[next_node.pos, curr_node.pos]['weight'] = next_node.prob
+    #                 print(f"Setting Prob: {next_node.prob}")
+    #                 trailing_prob += next_node.prob
     new_paths, prob_sum = {}, 0
     for i, path in enumerate(nx.all_simple_paths(G, transcript_start, transcript_end)):
         curr_prob = path_weight_mult(G, path, 'weight')
@@ -208,10 +211,20 @@ def develop_aberrant_splicing(exons, aberrant_splicing):
         new_paths[i] = {'acceptors': sorted([p for p in path if p in exon_starts.keys() and p != transcript_start], reverse=rev),
                         'donors': sorted([p for p in path if p in exon_ends.keys() and p != transcript_end], reverse=rev),
                         'path_weight': curr_prob}
-
+        continuance = i + 1
+    if prob_sum < 0.1:
+        for j, path in enumerate(nx.all_simple_paths(G, transcript_start, next_exon_end)):
+            curr_prob = path_weight_mult(G, path, 'weight')
+            if curr_prob < 0.1:
+                continue
+            prob_sum += curr_prob
+            new_paths[continuance+j] = {'acceptors': sorted([p for p in path if p in exon_starts.keys() and p != transcript_start],
+                                                reverse=rev),
+                            'donors': sorted([p for p in path if p in exon_ends.keys() and p != transcript_end],
+                                             reverse=rev),
+                            'path_weight': curr_prob}
     for i, d in new_paths.items():
-        d['path_weight'] = round(d['path_weight'] / prob_sum, 2)
-
+        d['path_weight'] = round(d['path_weight'] / prob_sum, 3)
     new_paths = {k: v for k, v in new_paths.items() if v['path_weight'] > 0.01}
     return list(new_paths.values())
 
@@ -234,10 +247,8 @@ class SpliceSite(object):
     pos: int
     ss_type: int
     prob: float
-
     def __post_init__(self):
         pass
-
     def __lt__(self, other):
         return self.pos < other.pos
 
