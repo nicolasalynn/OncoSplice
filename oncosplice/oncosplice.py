@@ -287,8 +287,8 @@ def find_unmodified_positions(lp, deletions, insertions):
 
     for pos, insertion in insertions.items():
         reach = min(len(insertion) // 2, 38)
-        end = np.linspace(0, 1, reach).round(2)
-        start = end[::-1]
+        # end = np.linspace(0, 1, reach).round(2)
+        # start = end[::-1]
         # filler = np.concatenate([start, np.zeros(1), end])
         front_end = pos - reach
 
@@ -300,7 +300,11 @@ def find_unmodified_positions(lp, deletions, insertions):
             back_end = len(unmodified_positions)
 
         # rel_start_pos, rel_end_pos = 0, 0
-        unmodified_positions[front_end:back_end] = np.zeros(back_end-front_end, dtype=float) #filler[rel_start_pos:rel_end_pos]
+        len_start = pos - front_end
+        len_end = back_end - pos
+        unmodified_positions[front_end:back_end] = np.concatenace([np.linspace(0, 1, len_start)[::-1], np.zeros(1), np.linspace(0, 1, len_end)])
+        # np.zeros(back_end-front_end, dtype=float) #filler[rel_start_pos:rel_end_pos]
+        # filler = np.concatenace([np.linspace(0, 1, len_start)[::-1], np.zeros(1), np.linspace(0, 1, len_end)])
 
         # if back_end > end_pos:
         #     fill_pos = end_pos - front_end
