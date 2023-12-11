@@ -296,13 +296,13 @@ def find_unmodified_positions(lp, deletions, insertions):
             front_end = 0
 
         back_end = pos + reach + 1
-        if back_end > len(unmodified_positions):
-            back_end = len(unmodified_positions)
+        if back_end >= len(unmodified_positions):
+            back_end = len(unmodified_positions)-1
 
         # rel_start_pos, rel_end_pos = 0, 0
         len_start = pos - front_end
         len_end = back_end - pos
-        unmodified_positions[front_end:back_end] = np.concatenate([np.linspace(0, 1, len_start)[::-1], np.zeros(1), np.linspace(0, 1, len_end)])
+        unmodified_positions[front_end:back_end+1] = np.concatenate([np.linspace(0, 1, len_start)[::-1], np.zeros(1), np.linspace(0, 1, len_end)])
         # np.zeros(back_end-front_end, dtype=float) #filler[rel_start_pos:rel_end_pos]
         # filler = np.concatenace([np.linspace(0, 1, len_start)[::-1], np.zeros(1), np.linspace(0, 1, len_end)])
 
