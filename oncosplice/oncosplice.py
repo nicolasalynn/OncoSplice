@@ -26,12 +26,12 @@ def oncosplice(mutation, sai_threshold=0.25, prevalence_threshold=0.25, target_t
 
     if target_transcripts:
         reports = pd.concat([oncosplice_transcript(gene.transcripts[transcript_id].generate_protein(), mutation, aberrant_splicing, prevalence_threshold) for
-                             transcript_id in target_transcripts if gene.transcripts[transcript_id]['transcript_type'] == 'protein_coding'], axis=1)
+                             transcript_id in target_transcripts if gene.transcripts[transcript_id]['transcript_type'] == 'protein_coding'])
     elif primary_transcript:
-        reports = oncosplice_transcript(gene.primary_transcript.generate_protein(), mutation, aberrant_splicing, prevalence_threshold)
+          reports = oncosplice_transcript(gene.primary_transcript.generate_protein(), mutation, aberrant_splicing, prevalence_threshold)
     else:
         reports = pd.concat([oncosplice_transcript(reference_transcript.generate_protein(), mutation, aberrant_splicing, prevalence_threshold) for
-                             reference_transcript in gene if reference_transcript.transcript_type == 'protein_coding'], axis=1)
+                             reference_transcript in gene if reference_transcript.transcript_type == 'protein_coding'])
     return reports
 
 def oncosplice_transcript(reference_transcript, mutation, aberrant_splicing, prevalence_threshold=0.0):
