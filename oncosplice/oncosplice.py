@@ -42,6 +42,7 @@ def oncosplice(mutation: str, sai_threshold=0.25, prevalence_threshold=0.25, tar
     # Append some additional, uniform information to the results dataframe
     results['mut_id'] = mutation.mut_id
     results['missplicing'] = bool(aberrant_splicing)
+    results['gene'] = mutation.gene
     return results
 
 def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations, aberrant_splicing:PredictSpliceAI, prevalence_threshold=0.0, full_output=False) -> pd.DataFrame:
@@ -95,6 +96,7 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
 
     reports = pd.DataFrame(reports)
     reports['cons_available'] = cons_available
+    reports['transcript_id'] = reference_transcript.transcript_id
     return reports[reports.isoform_prevalence >= prevalence_threshold]
 
 def get_logical_alignment(ref_prot, var_prot):
