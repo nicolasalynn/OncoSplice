@@ -73,10 +73,6 @@ class Variations:
             return x
         raise StopIteration
 
-    # @property
-    # def congruent(self):
-    #     return check_variant_compatibility(self.variants)
-
     @property
     def file_identifier_json(self):
         return Path(self.file_identifier + '.json')
@@ -114,7 +110,7 @@ def generate_mut_variant(seq: str, indices: list, mut: Mutation):
 
 def find_new_tis(seq, tis, tts, tid='', data_path='/tamir2/shaicohen1/share/titer-master'):
 
-    from oncosplice.titer_utils import run_through_titer
+    from oncosplice.tis_utils import run_through_titer
     new_tis, _, _, _, _ = run_through_titer(mut_seq=seq,
                                            mut_coords=indices,
                                            ref_sc_coord=tis,
@@ -180,30 +176,7 @@ def develop_aberrant_splicing(transcript, aberrant_splicing):
                     G.add_edge(curr_node.pos, next_node.pos)
                     G.edges[curr_node.pos, next_node.pos]['weight'] = next_node.prob
                     trailing_prob += next_node.prob
-    # backward pass where we check
-    # nodes = nodes[::-1]
-    # for i in range(len(nodes)):
-    #     trailing_prob, in_between = 0, []
-    #     for j in range(i + 1, len(nodes)):
-    #         curr_node, next_node = nodes[i], nodes[j]
-    #         spread = curr_node.ss_type in in_between
-    #         in_between.append(next_node.ss_type)
-    #         if curr_node.ss_type != next_node.ss_type:
-    #             if spread:
-    #                 new_prob = next_node.prob - trailing_prob
-    #                 if new_prob <= 0:
-    #                     break
-    #                 G.add_edge(next_node.pos, curr_node.pos)
-    #                 print(curr_node, next_node)
-    #                 G.edges[next_node.pos, curr_node.pos]['weight'] = new_prob
-    #                 print(f"Setting Prob: {new_prob}")
-    #                 trailing_prob += next_node.prob
-    #             else:
-    #                 # G.add_edge(curr_node.pos, next_node.pos)
-    #                 print(curr_node, next_node)
-    #                 G.edges[next_node.pos, curr_node.pos]['weight'] = next_node.prob
-    #                 print(f"Setting Prob: {next_node.prob}")
-    #                 trailing_prob += next_node.prob
+
     new_paths, prob_sum = {}, 0
     for i, path in enumerate(nx.all_simple_paths(G, transcript_start, transcript_end)):
         curr_prob = path_weight_mult(G, path, 'weight')
@@ -263,78 +236,3 @@ def generate_random_as(transcript):
         'missed_donors': {ma: {'absolute': 0.2}},
         'missed_acceptors': {md: {'absolute': 0.1}},
     }
-
-# def generate_mut_variant(seq: str, indices: list, mut: Mutation):
-#     offset = 1 if not mut.ref else 0
-#
-#     check_indices = list(range(mut.start, mut.start + len(mut.ref) + offset))
-#     check1 = all([m in indices for m in check_indices])
-#     if not check1:
-#         print(f"Mutation {mut} not within transcript bounds: {min(indices)} - {max(indices)}.")
-#         return seq, indices, False, False
-#
-#     rel_start, rel_end = indices.index(mut.start)+offset, indices.index(mut.start)+offset+len(mut.ref)
-#     acquired_seq = seq[rel_start:rel_end]
-#     check2 = acquired_seq == mut.ref
-#     if not check2:
-#         print(f'Reference allele does not match genome_build allele. {acquired_seq}, {mut.ref}, {mut.start}')
-#         consensus_allele = False
-#     else:
-#         consensus_allele = True
-#     if len(mut.ref) == len(mut.alt) > 0:
-#         temp_indices = list(range(mut.start, mut.start + len(mut.ref)))
-#     else:
-#         temp_indices = [indices[indices.index(mut.start)] + v / 1000 for v in list(range(1, len(mut.alt)+1))]
-#
-#     new_indices = indices[:rel_start] + temp_indices + indices[rel_end:]
-#     new_seq = seq[:rel_start] + mut.alt + seq[rel_end:]
-#
-#     assert len(new_seq) == len(new_indices), f'Error in variant modification: {mut}, {len(new_seq)}, {len(new_indices)}'
-#     return new_seq, new_indices, True, consensus_allele
-
-
-# def check_pairwise_variant_compatibility(mut1, mut2):
-#     if mut1 == mut2:
-#         return True
-#     if mut1.vartype == 'DEL':
-#         deleted_positions1 = list(range(mut1.start, mut1.start + len(mut1.ref)))
-#     else:
-#         deleted_positions1 = []
-#     if mut2.vartype == 'DEL':
-#         deleted_positions2 = list(range(mut2.start, mut2.start + len(mut2.ref)))
-#     else:
-#         deleted_positions2 = []
-#
-#     if mut1.vartype == 'SNP':
-#         snp_pos1 = mut1.start
-#     else:
-#         snp_pos1 = 0
-#     if mut2.vartype == 'SNP':
-#         snp_pos2 = mut2.start
-#     else:
-#         snp_pos2 = 0
-#
-#     if mut1.vartype == 'INS':
-#         ins_pos1 = mut1.start
-#     else:
-#         ins_pos1 = 0
-#     if mut2.vartype == 'INS':
-#         ins_pos2 = mut2.start
-#     else:
-#         ins_pos2 = 0
-#
-#     if snp_pos1 == snp_pos2 != 0:
-#         return False
-#
-#     if snp_pos1 in deleted_positions2 or snp_pos2 in deleted_positions1:
-#         return False
-#
-#     if ins_pos1 == ins_pos2 != 0:
-#         return False
-#
-#     if len(np.intersect1d(deleted_positions1, deleted_positions2)) > 0:
-#         return False
-#
-#     return True
-# def check_variant_compatibility(mutations):
-#     return all([check_pairwise_variant_compatibility(mut1, mut2) for mut1 in mutations for mut2 in mutations])

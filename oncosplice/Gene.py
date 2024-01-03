@@ -1,15 +1,31 @@
 from copy import copy
-from geney import *
+from geney import get_correct_gene_file, reverse_complement, pull_fasta_seq_endpoints
+import json
 # from geney import get_correct_gene_file, reverse_complement, pull_fasta_seq_endpoints
 from Bio.Seq import Seq
 # import json
 from oncosplice.variant_utils import generate_mut_variant, Mutation, find_new_tis, find_new_tts
 from pathlib import Path
 from oncosplice import oncosplice_setup
+# from oncosplice.tis_utils import TISFInder
+import os
+import re
+import numpy as np
+import subprocess
+from geney import unload_json
+import pkg_resources
+from joblib import load
+
 file = Path('/Users/nl/Documents/phd/data/ensembl/mRNAs/protein_coding/mrnas_ENSG00000006283.18_CACNA1G.json')
 
-class Gene:
 
+kozak_pssm_loc = pkg_resources.resource_filename('oncosplice', 'resources/kozak_pssm.json')
+PSSM = unload_json(kozak_pssm_loc)
+
+tree_model_state = pkg_resources.resource_filename('oncosplice', 'resources/tis_regressor_model.joblib')
+TREE_MODEL = load(tree_model_state)
+
+class Gene:
     def __init__(self, gene_name=None, file=None, dict_data=None, target_directory=oncosplice_setup['MRNA_PATH']):
         self.gene_name = gene_name
         self.gene_id = ''
@@ -28,7 +44,7 @@ class Gene:
             self.load_from_file(file)
 
     def __repr__(self):
-        return 'Gene(gene_name={gname})'.format(gname=self.gene_name)
+        return f'Gene(gene_name={self.gene_name})'   #.format(gname=self.gene_name)
 
     def __len__(self):
         return len(self.transcripts)
@@ -47,10 +63,9 @@ class Gene:
 
     def load_from_file(self, file_name):
         if not file_name.exists():
-            raise ValueError(f"'{str(file_name)}' does not exist.")
+            raise FileNotFoundError(f"File '{file_name}' not found.")
 
-        data = json.load(open(file_name))
-        self.load_from_dict(dict_data=data)
+        self.load_from_dict(dict_data=json.load(open(file_name)))
         return self
 
     def load_from_dict(self, dict_data=None):
@@ -65,14 +80,15 @@ class Gene:
     def generate_transcript(self, tid):
         return Transcript(self.transcripts[tid])
 
-    @property
-    def primary_transcript(self):
-        temp = [k for k, v in self.transcripts.items() if v.get('primary_transcript', False) or ('Ensembl_canonical' in v.get('tag', '') and ('CCDS' in v.get('tag', '')))]
-        return self.generate_transcript(temp[0])
+    # @property
+    # def primary_transcript(self):
+    #     temp = [k for k, v in self.transcripts.items() if v.get('primary_transcript', False) or ('Ensembl_canonical' in v.get('tag', '') and ('CCDS' in v.get('tag', '')))]
+    #     return self.generate_transcript(temp[0])
 
     def transcript(self, tid):
-        temp = [k for k, v in self.transcripts.items() if tid in k]
-        return self.generate_transcript(temp[0])
+        if tid not in self.transcripts:
+            raise AttributeError(f"Transcript '{tid}' not found in gene '{self.gene_name}'.")
+        return self.generate_transcript(tid)
 
 class Transcript:
     def __init__(self, d=None):
@@ -232,12 +248,129 @@ class Transcript:
         return protein
 
     def generate_translational_boundaries(self):
-        if self.TIS not in self.transcript_indices:
-            if 'ATG' in self.transcript_seq:
-                self.TIS = self.transcript_indices[self.transcript_seq.index('ATG')]
-            else:
-                self.TIS = self.transcript_indices[0]
-            # self.TIS = find_new_tis(self.transcript_seq, self.transcript_indices, self.TIS, self.TTS)
+        if self.TIS not in self.transcript_indices or self.transcript_seq[self.transcript_indices.index(self.TIS):self.transcript_indices.index(self.TIS)+3] != 'ATG':
+            self.TIS = TISFInder(self.transcript_seq, self.transcript_indices)
         self.TTS = find_new_tts(self.transcript_seq, self.transcript_indices, self.TIS)
         return self
 
+
+
+def TISFInder(seq, index=None):
+    '''
+    Predicts the most likely start (TIS) and end (TTS) positions in a mature mRNA sequence.
+
+    Parameters:
+    var_seq (str): Mature mRNA sequence of a transcript with unknown TIS/TTS.
+    var_index (list): Index coverage of the mRNA sequence.
+    nstart (str): ORF of a mature reference sequence including start codon.
+    istart (list): ORF index coverage of the reference sequence.
+
+    Returns:
+    tuple: A tuple containing the predicted relative positions of the start and end codons (TIS and TTS).
+    '''
+
+    start_codon_positions = [i for i in range(len(seq) - 2) if seq[i:i + 3] == 'ATG']
+    kozak_scores = [calculate_kozak_score(seq, pos, PSSM) for pos in start_codon_positions]
+    corresponding_end_codons = [get_end_codon(seq, pos) for pos in start_codon_positions]
+    folding_scores = [calculate_folding_energy(seq, pos) for pos in start_codon_positions]
+    # titer_scores = [calculate_titer_score(seq, pos) for por in start_codon_positions]
+
+    input_X = np.array([kozak_scores, corresponding_end_codons, folding_scores]) #, titer_scores])
+    scores = TREE_MODEL(input_X)
+    rel_start_pos = start_codon_positions[scores.index(max(scores))]
+    if index is None:
+        return rel_start_pos
+    else:
+        return index[rel_start_pos]
+
+
+def calculate_kozak_score(seq, position, PSSM):
+    """
+    Calculates the Kozak score for a 9-nucleotide segment of a sequence,
+    starting 3 nucleotides before the given position.
+
+    Parameters:
+    seq (str): The full nucleotide sequence.
+    position (int): The relative position in the sequence to target for scoring.
+    PSSM (np.array): Position-specific scoring matrix for Kozak sequence scoring.
+
+    Returns:
+    float: The calculated Kozak score, or None if the segment is not of valid length.
+
+    Raises:
+    ValueError: If the position is not valid within the sequence.
+    """
+
+    # Validate position for a valid 9-nucleotide segment
+    if not 6 <= position < len(seq) - 9:
+        return 0
+        # raise ValueError("Position does not allow for a valid 9-nucleotide segment extraction.")
+
+    # Extract the 9-nucleotide segment
+    segment = seq[position - 6:position + 9]
+
+    # Calculate score using list comprehension
+    try:
+        score = np.prod([PSSM[nucleotide][i] + 1 for i, nucleotide in enumerate(segment)])
+    except KeyError as e:
+        raise ValueError(f"Invalid nucleotide in sequence: {e}")
+
+    return score
+
+def calculate_folding_energy(seq, position, front_margin=20, back_margin=10):
+    """
+    Calculates the folding energy of a nucleotide sequence using ViennaRNA's RNAfold tool.
+
+    Parameters:
+    sequence (str): The nucleotide sequence for which folding energy is to be calculated.
+
+    Returns:
+    float: The folding energy of the sequence, or None if an error occurs.
+    """
+
+    segment = seq[max(0, position-front_margin):min(position+back_margin, len(seq))]
+
+    try:
+        # Call RNAfold with the sequence
+        process = subprocess.run(['RNAfold'], input=segment, text=True, capture_output=True)
+
+        # Capture the output
+        output = process.stdout
+        # Regular expression to find the folding energy
+        match = re.search(r'\((\s*[-+]?\d*\.\d+)\)', output)
+        if match:
+            return float(match.group(1))
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return 0
+
+
+def get_end_codon(seq, start_position):
+    """
+    Finds the position of the first in-frame stop codon in a nucleotide sequence starting from a specified position.
+
+    Parameters:
+    seq (str): The nucleotide sequence.
+    start_position (int): The relative position in the sequence to start searching for the stop codon.
+
+    Returns:
+    int: The relative position of the first in-frame stop codon after the start position.
+         Returns -1 if no stop codon is found.
+    """
+
+    # Define stop codons
+    stop_codons = ['TAG', 'TGA', 'TAA']
+
+    # Check for each triplet (codon) in the sequence starting from start_position
+    for i in range(start_position, len(seq) - 2, 3):
+        codon = seq[i:i + 3]
+        if codon in stop_codons:
+            return i - start_position
+
+    # Return -1 if no stop codon is found
+    return 0
+
+
+def calculate_titer_score(seq, pos):
+    return 0

@@ -3,7 +3,7 @@ from geney import find_end_codon, unload_pickle
 
 from oncosplice import oncosplice_setup
 from trash.mature_mRNA import mature_mRNA
-from oncosplice.titer_utils import run_through_titer, build_titer_model
+from oncosplice.tis_utils import run_through_titer, build_titer_model
 
 titer_model = build_titer_model()
 

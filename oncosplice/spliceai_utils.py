@@ -209,7 +209,10 @@ class PredictSpliceAI:
         threshold = self.threshold if not threshold else threshold
         new_dict = {}
         for event, details in splicing_dict.items():
-            new_dict[event] = {k: v for k, v in details.items() if abs(v['delta']) >= threshold}
+            for e, d in details.items():
+                if d['delta'] >= threshold:
+                    return splicing_dict
+            new_dict[event] = {}        #{k: v for k, v in details.items() if abs(v['delta']) >= threshold}
         return new_dict
 
 
