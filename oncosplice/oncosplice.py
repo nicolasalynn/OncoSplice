@@ -80,6 +80,8 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
 
         # Based on the optimal alignment, we can generate the relative locations of insertions and deletions
         deleted, inserted = find_indels_with_mismatches_as_deletions(alignment.seqA, alignment.seqB)
+        print(f">> {alignment.seqA}")
+        print(f">> {alignment.seqB}")
 
         report = {
             'isoform': i,
@@ -215,10 +217,11 @@ def calculate_oncosplice_scores(deletions, insertions, cons_vector, window_size=
     modified_cons_vector = np.convolve(cons_vec * modified_positions, np.ones(window_size), mode='same') / window_size
 
     max_score = np.max(modified_cons_vector)
-    max_score_indices = np.where(modified_cons_vector == max_score)[0]
+    max_score_indices = np.argmax(modified_cons_vector) # == max_score)[0]
 
     # Exclude windows within one window_size of the max scoring window
     exclusion_zone = set().union(*(range(max(i - window_size, 0), min(i + window_size, len(modified_cons_vector))) for i in max_score_indices))
+    print(window_size)
     print(exclusion_zone)
     print(modified_cons_vector)
 
