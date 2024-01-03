@@ -4,10 +4,12 @@ from Bio import pairwise2
 import re
 from copy import deepcopy
 from pathlib import Path
-from geney import access_conservation_data
+from geney import unload_pickle
 from oncosplice.spliceai_utils import PredictSpliceAI
 from oncosplice.Gene import Gene, Transcript
 from oncosplice.variant_utils import Variations, develop_aberrant_splicing
+from oncosplice import oncosplice_setup
+
 sample_mut_id = 'KRAS:12:25227343:G:T'
 
 def oncosplice(mutation: str, sai_threshold=0.25, prevalence_threshold=0.25, target_directory=Path('/tamir2/nicolaslynn/projects/mutation_colabs/mrna_database')) -> pd.DataFrame:
@@ -52,7 +54,16 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
     :return:
     '''
     reports = []
-    cons_seq, cons_vector, cons_available = access_conservation_data(reference_transcript.transcript_id)        # access conservation data
+
+    file = oncosplice_setup['CONS_PATH'] / f"cons_{reference_transcript.transcript_id.replace('.', '-')}.json"
+    if not file.exists():
+        print(f"Missing conservation data for: {reference_transcript.transcript_id.replace('.', '-')}")
+        cons_seq, cons_vector, cons_available  = False, np.ones(len(reference_transcript.protein), dtype=float), False
+
+    else:
+        cons_data = unload_pickle(file)
+        cons_seq, cons_vector, cons_available = cons_data['seq'], cons_data['scores'], True
+
     if cons_seq != reference_transcript.protein:                                                                # in the case that conservation is not available, we assign equal importances to all amino acids
         cons_available, cons_vector = False, np.ones(len(reference_transcript.protein), dtype=float)
 
