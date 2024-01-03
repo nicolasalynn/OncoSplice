@@ -18,11 +18,17 @@ from joblib import load
 
 file = Path('/Users/nl/Documents/phd/data/ensembl/mRNAs/protein_coding/mrnas_ENSG00000006283.18_CACNA1G.json')
 
+script_dir = os.path.dirname(__file__)
+
+# Step 2: Construct the path to the 'resources' directory
+resources_dir = os.path.join(script_dir, '..', 'resources')
+
+
 # kozak_pssm_loc = pkg_resources.resource_filename('oncosplice', 'resources/kozak_pssm.json')
-PSSM = unload_json('resources/kozak_pssm.json')
+PSSM = unload_json(os.path.join(resources_dir, 'kozak_pssm.json'))
 
 # tree_model_state = pkg_resources.resource_filename('oncosplice', 'resources/tis_regressor_model.joblib')
-TREE_MODEL = load('resources/tis_regressor_model.joblib')
+TREE_MODEL = load(os.path.join(resources_dir, 'tis_regressor_model.joblib'))
 
 class Gene:
     def __init__(self, gene_name=None, file=None, dict_data=None, target_directory=oncosplice_setup['MRNA_PATH']):
