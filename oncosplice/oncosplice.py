@@ -78,7 +78,7 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
         alignment, _, _ = get_logical_alignment(reference_transcript.protein, variant_transcript.protein)
 
         # Based on the optimal alignment, we can generate the relative locations of insertions and deletions
-        deleted, inserted = find_indels_with_mismatches_as_deletions(alignment)
+        deleted, inserted = find_indels_with_mismatches_as_deletions(alignment.seqA, alignment.seqB)
 
         report = {
             'isoform': i,
