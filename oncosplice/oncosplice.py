@@ -215,7 +215,7 @@ def calculate_oncosplice_scores(deletions, insertions, cons_vector, window_size=
     modified_cons_vector = np.convolve(cons_vec * modified_positions, np.ones(window_size), mode='same') / window_size
 
     max_score = np.max(modified_cons_vector)
-    max_score_indices = np.argmax(modified_cons_vector) # == max_score)[0]
+    max_score_indices = np.where(modified_cons_vector == max_score)[0]
 
     # Exclude windows within one window_size of the max scoring window
     exclusion_zone = set().union(*(range(max(i - window_size, 0), min(i + window_size, len(modified_cons_vector))) for i in max_score_indices))
