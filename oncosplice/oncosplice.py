@@ -194,8 +194,8 @@ def find_unmodified_positions(sequence_length, deletions, insertions, reach_limi
         reach = min(len(insertion) // 2, reach_limit)
         front_end, back_end = max(0, pos - reach), min(sequence_length, pos + reach + 1)
         len_start, len_end = pos - front_end, back_end - pos
-        print(len(unmodified_positions[front_end:back_end + 2]), len(np.concatenate([np.linspace(0, 1, len_start)[::-1], [0], np.linspace(0, 1, len_end)])))
-        unmodified_positions[front_end:back_end + 2] = np.concatenate([np.linspace(0, 1, len_start)[::-1], [0], np.linspace(0, 1, len_end)])
+        print(len(unmodified_positions[front_end:back_end + 1]), len(np.concatenate([np.linspace(0, 1, len_start)[::-1], np.linspace(0, 1, len_end)])))
+        unmodified_positions[front_end:back_end + 1] = np.concatenate([np.linspace(0, 1, len_start)[::-1], np.linspace(0, 1, len_end)])
 
     return unmodified_positions
 
