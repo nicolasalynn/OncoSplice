@@ -281,7 +281,7 @@ def TISFInder(seq, index=None):
     # titer_scores = [calculate_titer_score(seq, pos) for por in start_codon_positions]
 
     input_X = np.array([kozak_scores, corresponding_end_codons, folding_scores]) #, titer_scores])
-    scores = TREE_MODEL(input_X)
+    scores = TREE_MODEL.predict(input_X)
     rel_start_pos = start_codon_positions[scores.index(max(scores))]
     if index is None:
         return rel_start_pos
