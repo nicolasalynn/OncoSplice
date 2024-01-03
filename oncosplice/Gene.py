@@ -280,7 +280,7 @@ def TISFInder(seq, index=None):
     folding_scores = [calculate_folding_energy(seq, pos) for pos in start_codon_positions]
     # titer_scores = [calculate_titer_score(seq, pos) for por in start_codon_positions]
 
-    input_X = np.array([kozak_scores, corresponding_end_codons, folding_scores]) #, titer_scores])
+    input_X = np.array([kozak_scores, corresponding_end_codons, folding_scores]).transpose() #, titer_scores])
     scores = TREE_MODEL.predict(input_X)
     rel_start_pos = start_codon_positions[scores.index(max(scores))]
     if index is None:
