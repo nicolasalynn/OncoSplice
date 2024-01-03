@@ -282,7 +282,9 @@ def TISFInder(seq, index=None):
 
     input_X = np.array([kozak_scores, corresponding_end_codons, folding_scores]).transpose() #, titer_scores])
     scores = TREE_MODEL.predict(input_X)
-    rel_start_pos = start_codon_positions[scores.index(max(scores))]
+    max_pos = np.argmax(scores)
+    rel_start_pos = start_codon_positions[max_pos]
+
     if index is None:
         return rel_start_pos
     else:
