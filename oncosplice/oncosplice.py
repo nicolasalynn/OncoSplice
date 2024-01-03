@@ -219,6 +219,9 @@ def calculate_oncosplice_scores(deletions, insertions, cons_vector, window_size=
 
     # Exclude windows within one window_size of the max scoring window
     exclusion_zone = set().union(*(range(max(i - window_size, 0), min(i + window_size, len(modified_cons_vector))) for i in max_score_indices))
+    print(exclusion_zone)
+    print(modified_cons_vector)
+
     second_highest_score = np.max([score for i, score in enumerate(modified_cons_vector) if i not in exclusion_zone])
 
     gof_prob = (max_score - second_highest_score) / max_score

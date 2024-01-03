@@ -275,6 +275,12 @@ def TISFInder(seq, index=None):
     '''
 
     start_codon_positions = [i for i in range(len(seq) - 2) if seq[i:i + 3] == 'ATG']
+    if len(start_codon_positions) == 0:
+        if index is None:
+            return 0
+        else:
+            return index[0]
+
     kozak_scores = [calculate_kozak_score(seq, pos, PSSM) for pos in start_codon_positions]
     corresponding_end_codons = [get_end_codon(seq, pos) for pos in start_codon_positions]
     folding_scores = [calculate_folding_energy(seq, pos) for pos in start_codon_positions]
