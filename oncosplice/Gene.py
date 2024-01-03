@@ -21,7 +21,7 @@ file = Path('/Users/nl/Documents/phd/data/ensembl/mRNAs/protein_coding/mrnas_ENS
 script_dir = os.path.dirname(__file__)
 
 # Step 2: Construct the path to the 'resources' directory
-resources_dir = os.path.join(script_dir, '..', 'resources')
+resources_dir = os.path.join(script_dir, 'resources')
 
 
 # kozak_pssm_loc = pkg_resources.resource_filename('oncosplice', 'resources/kozak_pssm.json')
