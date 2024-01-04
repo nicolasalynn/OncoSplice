@@ -41,7 +41,7 @@ def oncosplice(mutation: str, sai_threshold=0.25, prevalence_threshold=0.25, tar
 
     # Append some additional, uniform information to the results dataframe
     results['mut_id'] = mutation.mut_id
-    results['missplicing'] = bool(aberrant_splicing)
+    results['missplicing'] = aberrant_splicing.get_max_missplicing_delta()
     results['gene'] = mutation.gene
     return results
 
