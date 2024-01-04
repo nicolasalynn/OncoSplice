@@ -101,9 +101,9 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
         reports.append(report)
 
     reports = pd.DataFrame(reports)
-    reports['cons_available'] = transform_conservation_vector(cons_vector, 10),
+    reports['cons_available'] = cons_available,
     reports['transcript_id'] = reference_transcript.transcript_id
-    reports['cons_sum'] = np.sum(cons_vector)
+    reports['cons_sum'] = np.sum(transform_conservation_vector(cons_vector, 10))
     return reports[reports.isoform_prevalence >= prevalence_threshold]
 
 def get_logical_alignment(ref_prot, var_prot):
