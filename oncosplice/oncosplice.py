@@ -101,10 +101,7 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
         reports.append(report)
 
     reports = pd.DataFrame(reports)
-    try:
-        reports['cons_available'] = cons_available,
-    except:
-        print(cons_available, reports)
+    reports['cons_available'] = int(cons_available)
     reports['transcript_id'] = reference_transcript.transcript_id
     reports['cons_sum'] = np.sum(transform_conservation_vector(cons_vector, 10))
     return reports[reports.isoform_prevalence >= prevalence_threshold]
