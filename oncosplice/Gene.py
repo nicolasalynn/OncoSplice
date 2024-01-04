@@ -109,6 +109,7 @@ class Transcript:
         self.pre_mrna = ''
         self.orf = ''
         self.protein = ''
+        self.log = ''
         if d:
             self.load_from_dict(d)
 
@@ -254,7 +255,9 @@ class Transcript:
 
     def generate_translational_boundaries(self):
         if self.TIS not in self.transcript_indices or self.transcript_seq[self.transcript_indices.index(self.TIS):self.transcript_indices.index(self.TIS)+3] != 'ATG':
-            self.TIS = TISFInder(self.transcript_seq, self.transcript_indices)
+            new_tis = TISFInder(self.transcript_seq, self.transcript_indices)
+            self.log += f' TIS for transcript reacquired: {self.TIS} --> {new_tis}.'
+            self.TIS = new_tis
         self.TTS = find_new_tts(self.transcript_seq, self.transcript_indices, self.TIS)
         return self
 

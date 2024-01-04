@@ -55,7 +55,7 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
     :return:
     '''
     reports = []
-
+    print(reference_transcript.transcript_type)
     file = oncosplice_setup['CONS_PATH'] / f"cons_{reference_transcript.transcript_id}.pkl"
     if not file.exists():
         print(f"Missing conservation data for: {reference_transcript.transcript_id} ({file})")
@@ -88,6 +88,7 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
         deleted, inserted = find_indels_with_mismatches_as_deletions(alignment.seqA, alignment.seqB)
 
         report = {
+            'log': variant_transcript.log,
             'isoform': i,
             'isoform_prevalence': new_boundaries['path_weight'],
             'legacy_oncosplice_score': calculate_legacy_oncosplice_score(deleted, inserted, cons_vector,
@@ -103,6 +104,7 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
     reports = pd.DataFrame(reports)
     reports['cons_available'] = cons_available
     reports['transcript_id'] = reference_transcript.transcript_id
+    reports['cons_sum'] = np.sum(cons_vector)
     return reports[reports.isoform_prevalence >= prevalence_threshold]
 
 def get_logical_alignment(ref_prot, var_prot):
