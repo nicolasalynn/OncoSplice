@@ -55,7 +55,6 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
     :return:
     '''
     reports = []
-    print(reference_transcript.transcript_type)
     file = oncosplice_setup['CONS_PATH'] / f"cons_{reference_transcript.transcript_id}.pkl"
     if not file.exists():
         print(f"Missing conservation data for: {reference_transcript.transcript_id} ({file})")
