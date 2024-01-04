@@ -56,7 +56,7 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
     '''
     reports = []
 
-    file = oncosplice_setup['CONS_PATH'] / f"cons_{reference_transcript.transcript_id}.json"
+    file = oncosplice_setup['CONS_PATH'] / f"cons_{reference_transcript.transcript_id}.pkl"
     if not file.exists():
         print(f"Missing conservation data for: {reference_transcript.transcript_id} ({file})")
         cons_seq, cons_vector, cons_available  = '', np.ones(len(reference_transcript.protein), dtype=float), False
