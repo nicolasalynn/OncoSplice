@@ -101,7 +101,7 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
         reports.append(report)
 
     reports = pd.DataFrame(reports)
-    reports['cons_available'] = cons_available
+    reports['cons_available'] = transform_conservation_vector(cons_available, 10),
     reports['transcript_id'] = reference_transcript.transcript_id
     reports['cons_sum'] = np.sum(cons_vector)
     return reports[reports.isoform_prevalence >= prevalence_threshold]
@@ -228,7 +228,6 @@ def calculate_oncosplice_scores(deletions, insertions, cons_vector, window_size=
     # Exclude windows within one window_size of the max scoring window
     exclusion_zone = set().union(*(range(max(i - window_size, 0), min(i + window_size, len(modified_cons_vector))) for i in max_score_indices))
     viable_secondary_scores = [score for i, score in enumerate(modified_cons_vector) if i not in exclusion_zone]
-
 
     if len(viable_secondary_scores) == 0:
         gof_prob = 0
