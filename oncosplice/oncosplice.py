@@ -65,7 +65,13 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
         cons_data = unload_pickle(file)
         cons_seq, cons_vector, cons_available = cons_data['seq'], cons_data['scores'], True
 
-    if cons_seq != reference_transcript.protein:                                                                # in the case that conservation is not available, we assign equal importances to all amino acids
+    if cons_seq == reference_transcript.protein:
+        pass
+    elif '*' in cons_seq and '*' not in reference_transcript.protein and cons_seq[:-1] == reference_transcript.protein:
+        cons_vector = cons_vector[:-1]
+    elif '*' in reference_transcript.protein and '*' not in cons_seq and reference_transcript.protein[:-1] == cons_seq:
+        cons_vector = np.append(cons_vector, [np.mean(cons_vector)])
+    else:
         cons_available, cons_vector = False, np.ones(len(reference_transcript.protein), dtype=float)
 
     # For each transcript, we generate a series of isoforms based on the splice site predictions; each isoform is assigned a prevalence score
