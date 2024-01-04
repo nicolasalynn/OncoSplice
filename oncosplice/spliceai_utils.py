@@ -210,10 +210,19 @@ class PredictSpliceAI:
         new_dict = {}
         for event, details in splicing_dict.items():
             for e, d in details.items():
-                if d['delta'] >= threshold:
+                if abs(d['delta']) >= threshold:
                     return splicing_dict
             new_dict[event] = {}        #{k: v for k, v in details.items() if abs(v['delta']) >= threshold}
         return new_dict
+
+    def get_max_missplicing_delta(self):
+        max_delta = 0
+        for event, details in self.missplicing.items():
+            for e, d in details.items():
+                if abs(d['delta']) > max_delta:
+                    max_delta = abs(d['delta'])
+        return max_delta
+
 
 
 def check_splicing_difference(missplicing1, missplicing2, threshold=None):
