@@ -16,6 +16,12 @@ from geney import unload_json
 import pkg_resources
 from joblib import load
 
+# import numpy as np
+# import os
+# from keras.models import Sequential
+# from keras.layers import Input, Conv1D, MaxPool1D, Dropout, LSTM, Flatten, Dense, Activation
+# from keras.constraints import maxnorm
+
 file = Path('/Users/nl/Documents/phd/data/ensembl/mRNAs/protein_coding/mrnas_ENSG00000006283.18_CACNA1G.json')
 
 script_dir = os.path.dirname(__file__)
@@ -390,3 +396,48 @@ def get_end_codon(seq, start_position):
 
 def calculate_titer_score(seq, pos):
     return 0
+
+
+# def build_titer_model():
+#     model = Sequential([
+#         Input(shape=(203, 8)),
+#         Conv1D(128, 3, padding='valid', kernel_constraint=maxnorm(3), activation='relu'),
+#         MaxPool1D(3),
+#         Dropout(0.21370950078747658),
+#         LSTM(256, return_sequences=True),
+#         Dropout(0.7238091317104384),
+#         Flatten(),
+#         Dense(1),
+#         Activation('sigmoid')
+#     ])
+#     model.compile(loss='binary_crossentropy', optimizer='nadam', metrics=['accuracy'])
+#     return model
+
+
+# def seq_matrix_titer(seq_list):
+#     # Define a mapping for the nucleotides
+#     mapping = {'A': [1, 0, 0, 0], 'T': [0, 1, 0, 0], 'C': [0, 0, 1, 0], 'G': [0, 0, 0, 1], '$': [0, 0, 0, 0]}
+#     # Initialize tensor
+#     tensor = np.zeros((len(seq_list), 203, 8))
+#     for i, seq in enumerate(seq_list):
+#         for j, s in enumerate(seq):
+#             if j < 100 or j > 102:
+#                 tensor[i, j, :4] = mapping[s]
+#             else:
+#                 tensor[i, j, 4:8] = [0, 0, 0, 0] if s == '$' else [0, 0, 0, 0] + mapping[s]
+#     return tensor
+
+# def pred_trans_init_TITER(test_seq, model, use_prior=True):
+#     if len(test_seq) != 203:
+#         raise ValueError(f"Sequence length must be 203, not {len(test_seq)}.")
+#
+#     test_seq = seq_matrix_titer(test_seq)
+#     y_test_pred = model.predict(test_seq, verbose=0)
+#     return y_test_pred[100]
+
+
+
+# TITER_PATH = '/Users/nl/Downloads/TITER'
+# titer_model = build_titer_model()
+# titer_model.load_weights(os.path.join(TITER_PATH, f"bestmodel_1.hdf5"))
+# pred_trans_init_TITER(seq, titer_model)

@@ -12,7 +12,7 @@ from oncosplice import oncosplice_setup
 
 sample_mut_id = 'KRAS:12:25227343:G:T'
 
-def oncosplice(mutation: str, sai_threshold=0.25, prevalence_threshold=0.25, target_directory=Path('/tamir2/nicolaslynn/projects/mutation_colabs/mrna_database')) -> pd.DataFrame:
+def oncosplice(mutation: str, sai_threshold=0.25, prevalence_threshold=0.25, target_directory=Path('/tamir2/nicolaslynn/projects/mutation_colabs/mrna_database'), annotate=False) -> pd.DataFrame:
     '''
         :param mutation: str
                         the genomic variation
@@ -36,7 +36,7 @@ def oncosplice(mutation: str, sai_threshold=0.25, prevalence_threshold=0.25, tar
     gene = Gene(file=file)                                                      # We obtain the annotation file and convert it into a Gene object
     aberrant_splicing = PredictSpliceAI(mutation, threshold=sai_threshold)      # SpliceAI predictions are processed and obtained for each mutation
     # Oncosplice obtains predictions for each transcript in the annotation file
-    results = pd.concat([oncosplice_transcript(reference_transcript.generate_protein(), mutation, aberrant_splicing, prevalence_threshold) for
+    results = pd.concat([oncosplice_transcript(reference_transcript.generate_protein(), mutation, aberrant_splicing, prevalence_threshold, annotate) for
                          reference_transcript in gene])
 
     # Append some additional, uniform information to the results dataframe
@@ -45,7 +45,7 @@ def oncosplice(mutation: str, sai_threshold=0.25, prevalence_threshold=0.25, tar
     results['gene'] = mutation.gene
     return results
 
-def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations, aberrant_splicing:PredictSpliceAI, prevalence_threshold=0.0, full_output=False) -> pd.DataFrame:
+def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations, aberrant_splicing:PredictSpliceAI, prevalence_threshold=0.0, annotate=False) -> pd.DataFrame:
     '''
     :param reference_transcript:
     :param mutation:
@@ -92,19 +92,22 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
             'isoform_prevalence': new_boundaries['path_weight'],
             'legacy_oncosplice_score': calculate_legacy_oncosplice_score(deleted, inserted, cons_vector,
                                                       min(76, len(reference_transcript.protein))),
+            'variant_length': len(variant_transcript.protein)
         }
         report.update(calculate_oncosplice_scores(deleted, inserted, cons_vector))
 
-        if full_output:
-            report.update(compare_transcripts(reference_transcript, variant_transcript, mutation))
-
+        if annotate:
+            report.update(OncospliceAnnotator(reference_transcript, variant_transcript, mutation))
+            report['insertions'] = inserted
+            report['deletions'] = deleted
+            report['full_missplicing'] = aberrant_splicing.missplicing
         reports.append(report)
 
     reports = pd.DataFrame(reports)
     reports['cons_available'] = int(cons_available)
     reports['transcript_id'] = reference_transcript.transcript_id
     reports['cons_sum'] = np.sum(np.exp(np.negative(cons_vector)))
-    reports['transcript_length'] = len(cons_vector)
+    reports['transcript_length'] = len(reference_transcript.protein)
     return reports[reports.isoform_prevalence >= prevalence_threshold]
 
 def get_logical_alignment(ref_prot, var_prot):
@@ -209,7 +212,7 @@ def find_unmodified_positions(sequence_length, deletions, insertions, reach_limi
             unmodified_positions[front_end:back_end + 1] = np.zeros(len(unmodified_positions[front_end:back_end + 1]))
     return unmodified_positions
 
-def calculate_oncosplice_scores(deletions, insertions, cons_vector, window_size=10):
+def calculate_oncosplice_scores(deletions, insertions, cons_vector, window_size=4):
     """
     Calculate oncosplice scores based on conservation vectors and detected sequence modifications.
 
@@ -282,74 +285,48 @@ def calculate_legacy_oncosplice_score(deletions, insertions, cons_vec, W):
 
 
 
-##### Additional Insight
+def OncospliceAnnotator(reference_transcript, variant_transcript, mut):
+    affected_exon, affected_intron, distance_from_5, distance_from_3 = find_splice_site_proximity(mut, reference_transcript)
 
-def compare_transcripts(reference_transcript, variant_transcript, mut):
-    return {}
-    # cons_seq, cons_vector = access_conservation_data(reference_transcript.transcript_id)
-    # if cons_seq == reference_transcript.protein:
-    #     cons_available = True
-    #     cons_vector = cons_vector
-    # else:
-    #     cons_available = False
-    #     cons_vector = [1] * len(reference_transcript.protein)
+    report = {}
+    report['reference_mRNA'] = reference_transcript.transcript_seq
+    report['reference_CDS_start'] = reference_transcript.TIS
+    report['reference_pre_mrna'] = reference_transcript.pre_mrna
+    report['reference_ORF'] = reference_transcript.pre_mrna[reference_transcript.transcript_indices.index(reference_transcript.TIS):reference_transcript.transcript_indices.index(reference_transcript.TTS)]
+    report['reference_protein'] = reference_transcript.protein
 
-    # alignment, num_ins, num_del = get_logical_alignment(reference_transcript.protein, variant_transcript.protein)
-    # deleted, inserted, aligned, unified_seq = get_insertions_and_deletions(alignment)
-    # window_length = min(76, len(reference_transcript.protein))
-    # cons_vector = np.array(cons_vector, dtype=float)
+    report['variant_mRNA'] = variant_transcript.transcript_seq
+    report['variant_CDS_start'] = variant_transcript.TIS
+    report['variant_pre_mrna'] = variant_transcript.pre_mrna[variant_transcript.transcript_indices.index(variant_transcript.TIS):variant_transcript.transcript_indices.index(variant_transcript.TTS)]
+    report['variant_ORF'] = variant_transcript.pre_mrna
+    report['variant_protein'] = variant_transcript.protein
 
-    # report['cons_available'] = cons_available
-    # report['legacy_oncosplice_score'] = calculate_legacy_oncosplice_score(deleted, inserted, cons_vector,
-    #                                                   window_length)
-    # report.update(calculate_oncosplice_scores(deleted, inserted, cons_vector))
-    # return pd.Series(report)
+    descriptions = define_missplicing_events(reference_transcript.exons, variant_transcript.exons,
+                              reference_transcript.rev)
+    report['exon_changes'] = '|'.join([v for v in descriptions if v])
+    report['splicing_codes'] = summarize_missplicing_event(*descriptions)
+    report['affected_exon'] = affected_exon
+    report['affected_intron'] = affected_intron
+    report['mutation_distance_from_5'] = distance_from_5
+    report['mutation_distance_from_3'] = distance_from_3
+    return report
 
-    # affected_exon, affected_intron, distance_from_5, distance_from_3 = None, None, None, None
-    # for i, (ex_start, ex_end) in enumerate(reference_transcript.exons):
-    #     if min(ex_start, ex_end) <= mut.start <= max(ex_start, ex_end):
-    #         affected_exon = i + 1
-    #         distance_from_5 = abs(mut.start - ex_start)
-    #         distance_from_3 = abs(mut.start - ex_end)
-    #
-    # for i, (in_start, in_end) in enumerate(reference_transcript.exons):
-    #     if min(in_start, in_end) <= mut.start <= max(in_start, in_end):
-    #         affected_exon = i + 1
-    #         distance_from_5 = abs(mut.start - in_end)
-    #         distance_from_3 = abs(mut.start - in_start)
 
-    # report = {f'reference_{k}': v for k, v in reference_transcript.constructor.items()}
-    # report['reference_mRNA'] = reference_transcript.transcript_seq
-    # report['reference_CDS_start'] = reference_transcript.transcript_indices.index(reference_transcript.TIS)
-    # report['reference_pre_mrna'] = reference_transcript.pre_mrna
-    # report['reference_ORF'] = reference_transcript.pre_mrna
-    # report['reference_protein'] = reference_transcript.protein
+def find_splice_site_proximity(mut, transcript):
+    affected_exon, affected_intron, distance_from_5, distance_from_3 = None, None, None, None
+    for i, (ex_start, ex_end) in enumerate(transcript.exons):
+        if min(ex_start, ex_end) <= mut.start <= max(ex_start, ex_end):
+            affected_exon = i + 1
+            distance_from_5 = abs(mut.start - ex_start)
+            distance_from_3 = abs(mut.start - ex_end)
 
-    # report.update({f'variant_{k}': v for k, v in variant_transcript.constructor.items()})
-    # report['variant_mRNA'] = variant_transcript.transcript_seq
-    # report['variant_CDS_start'] = variant_transcript.transcript_indices.index(variant_transcript.TIS)
-    # report['variant_pre_mrna'] = variant_transcript.pre_mrna
-    # report['variant_ORF'] = variant_transcript.pre_mrna
-    # report['variant_protein'] = variant_transcript.protein
+    for i, (in_start, in_end) in enumerate(transcript.introns):
+        if min(in_start, in_end) <= mut.start <= max(in_start, in_end):
+            affected_intron = i + 1
+            distance_from_5 = abs(mut.start - in_end)
+            distance_from_3 = abs(mut.start - in_start)
 
-    # report['protein_view'] = unified_seq
-    # descriptions = define_missplicing_events(reference_transcript.exons, variant_transcript.exons,
-    #                           reference_transcript.rev)
-    # report['exon_changes'] = '|'.join([v for v in descriptions if v])
-    # report['splicing_codes'] = summarize_missplicing_event(*descriptions)
-    # report['ref_prot_length'] = len(reference_transcript.protein)
-    # report['var_prot_length'] = len(variant_transcript.protein)
-    # report['preservation'] = aligned/len(reference_transcript.protein)
-    # report['affected_exon'] = affected_exon
-    # report['affected_intron'] = affected_intron
-    # report['mutation_distance_from_5'] = distance_from_5
-    # report['mutation_distance_from_3'] = distance_from_3
-    # report['cons_available'] = cons_available
-    # report['legacy_oncosplice_score'] = calculate_legacy_oncosplice_score(deleted, inserted, cons_vector,
-    #                                                   window_length)
-    # report.update(calculate_oncosplice_scores(deleted, inserted, cons_vector))
-    # return pd.Series(report)
-
+    return affected_exon, affected_intron, distance_from_5, distance_from_3
 
 def define_missplicing_events(ref_exons, var_exons, rev):
     ref_introns = [(ref_exons[i][1], ref_exons[i + 1][0]) for i in range(len(ref_exons) - 1)]
