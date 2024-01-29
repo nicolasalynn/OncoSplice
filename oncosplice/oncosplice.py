@@ -110,6 +110,10 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
     reports['transcript_length'] = len(reference_transcript.protein.replace('*', ''))
     return reports[reports.isoform_prevalence >= prevalence_threshold]
 
+
+def reduce_per_mut(df, score='oncosplice_score'):
+    return df.groupby(['mut_id', 'transcript_id'])[score].mean().groupby('mut_id').max().reset_index()
+
 def get_logical_alignment(ref_prot, var_prot):
     '''
     :param ref_prot:
