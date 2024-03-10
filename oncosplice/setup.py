@@ -127,6 +127,7 @@ def retrieve_and_parse_ensembl_annotations(local_path, valid_biotypes=['protein_
 
     annotations = read_gtf(ensembl_address.local_file)
     for gene_id, gene_df in tqdm(annotations.groupby('gene_id')):
+        file_name = biotype_path / f'mrnas_{gene_id}_{gene_attribute.gene_name}.pkl'
         biotype = gene_df.gene_biotype.unique().tolist()
         chrm = gene_df.seqname.unique().tolist()
         strand = gene_df.strand.unique().tolist()
@@ -137,6 +138,9 @@ def retrieve_and_parse_ensembl_annotations(local_path, valid_biotypes=['protein_
         assert len(gene_attribute) == 1, f"Multiple gene attributes: {gene_attribute.size}"
 
         if biotype[0] not in valid_biotypes:
+            continue
+
+        if file_name.exists():
             continue
 
         gene_attribute = gene_attribute.squeeze()
@@ -168,7 +172,7 @@ def retrieve_and_parse_ensembl_annotations(local_path, valid_biotypes=['protein_
         if gene_attribute.gene_name == '' or gene_id == '':
             continue
 
-        file_name = biotype_path / f'mrnas_{gene_id}_{gene_attribute.gene_name}.pkl'
+
         dump_pickle(file_name, json_data)
 
 
