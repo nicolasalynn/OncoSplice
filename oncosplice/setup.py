@@ -8,6 +8,8 @@ import requests
 import shutil
 import argparse
 import gzip
+from sh import gunzip
+
 
 # script_dir = os.path.dirname(__file__)
 # resources_dir = os.path.join(script_dir, 'resources')
@@ -45,7 +47,8 @@ class Download:
     def process_file(self):
         if self.local_file.suffix == '.gz':
             try:
-                shutil.unpack_archive(str(self.local_file), extract_dir=self.local_path)
+                gunzip(str(self.local_file))
+                # shutil.unpack_archive(str(self.local_file), extract_dir=self.local_path)
                 self.local_file = Path(self.local_file.as_posix().rstrip('.gz'))
             except Exception as e:
                 print(f"Error during file processing: {e}")
