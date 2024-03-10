@@ -11,15 +11,15 @@ from sh import gunzip
 def download_and_ungzip(external_url, local_path):
     local_file = Path(external_url).name
     local_file_path = Path(local_path) / local_file
-    # try:
-    #     response = requests.get(external_url, stream=True)
-    #     response.raise_for_status()  # Raises a HTTPError if the HTTP request returned an unsuccessful status code
-    #     with open(local_file_path, 'wb') as f:
-    #         f.write(response.content)
-    # except Exception as e:
-    #     print(f"Error during download: {e}")
-    #
-    # gunzip(str(local_file_path))
+    try:
+        response = requests.get(external_url, stream=True)
+        response.raise_for_status()  # Raises a HTTPError if the HTTP request returned an unsuccessful status code
+        with open(local_file_path, 'wb') as f:
+            f.write(response.content)
+    except Exception as e:
+        print(f"Error during download: {e}")
+
+    gunzip(str(local_file_path))
     local_file_path = Path(local_file_path.as_posix().rstrip('.gz'))
     return local_file_path
 
@@ -187,16 +187,20 @@ def main():
     parser = argparse.ArgumentParser(description="Conservation file location")
     parser.add_argument("consfile", help="The location of the conservation data file.")
     parser.add_argument("basepath", help="The location of the data we are mounting.")
-
     args = parser.parse_args()
+
+    config_file = config_dir / 'config.txt'
+    with open(config_file, 'w') as cf:
+        cf.write(f"DATA_DIR={args.basepath}")
+
     cons_file = Path(args.consfile)
     assert cons_file.exists(), f"{cons_file} does not exist. Please provide a path to the conservation data."
 
     base_path = Path(args.basepath)
     if base_path.exists() and len(os.listdir(base_path)) > 0:
-        # raise FileExistsError(f"Directory {base_path} not empty.")
-        pass
-
+        raise FileExistsError(f"Directory {base_path} not empty.")
+        # pass
+    #
     elif not base_path.exists():
         print(f"Initializing data folder at {base_path}.")
         base_path.mkdir()
@@ -207,13 +211,13 @@ def main():
     fasta_url = 'https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/latest/hg38.fa.gz'
     fasta_file = download_and_ungzip(fasta_url, base_path)
     fasta_build_path = base_path / f'chromosomes'
-    # fasta_build_path.mkdir()
-    # split_fasta(fasta_file, fasta_build_path)
+    fasta_build_path.mkdir()
+    split_fasta(fasta_file, fasta_build_path)
 
     ensembl_url = 'https://ftp.ensembl.org/pub/release-111/gtf/homo_sapiens/Homo_sapiens.GRCh38.111.gtf.gz'
     ensembl_file = download_and_ungzip(ensembl_url, base_path)
     ensembl_annotation_path = base_path / f'annotations'
-    # ensembl_annotation_path.mkdir()
+    ensembl_annotation_path.mkdir()
     retrieve_and_parse_ensembl_annotations(ensembl_annotation_path, ensembl_file, gtex_file, cons_file)
 
     print(f"Finished mounding database in {args.basedir}.")
