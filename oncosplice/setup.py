@@ -16,6 +16,7 @@ def download_and_ungzip(external_url, local_path):
         response.raise_for_status()  # Raises a HTTPError if the HTTP request returned an unsuccessful status code
         with open(local_file_path, 'wb') as f:
             f.write(response.content)
+
     except Exception as e:
         print(f"Error during download: {e}")
 
@@ -220,7 +221,7 @@ def main():
     ensembl_annotation_path.mkdir()
     retrieve_and_parse_ensembl_annotations(ensembl_annotation_path, ensembl_file, gtex_file, cons_file)
 
-    print(f"Finished mounding database in {args.basedir}.")
+    print(f"Finished mounding database in {args.basepath}.")
 
 if __name__ == '__main__':
     main()
