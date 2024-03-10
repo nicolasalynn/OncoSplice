@@ -5,56 +5,27 @@ from geney import dump_json, dump_pickle, unload_pickle
 import pandas as pd
 from tqdm import tqdm
 import requests
-import shutil
 import argparse
-import gzip
 from sh import gunzip
 
 
-# script_dir = os.path.dirname(__file__)
-# resources_dir = os.path.join(script_dir, 'resources')
-resources_dir = '/tamir2/nicolaslynn/tools/OncoSplice/oncosplice/resources'
-CONS_DATA = unload_pickle(os.path.join(resources_dir, 'conservation.pkl'))
+def download_and_ungzip(external_url, local_path):
+    local_file = Path(external_url).name
+    local_file_path = Path(local_path) / local_file
+    try:
+        response = requests.get(external_url, stream=True)
+        response.raise_for_status()  # Raises a HTTPError if the HTTP request returned an unsuccessful status code
+        with open(local_file_path, 'wb') as f:
+            f.write(response.content)
+    except Exception as e:
+        print(f"Error during download: {e}")
 
-class Download:
-    def __init__(self, external_url, local_path):
-        self.external_url = external_url
-        self.local_path = Path(local_path)
-        self.local_file = self.get_local_file_path()
-        self.download_and_process_file()
-
-    def get_local_file_path(self):
-        file_name = Path(self.external_url).name
-        local_file_path = self.local_path / file_name
-        # Check if a non-gzipped version of the file already exists
-        if local_file_path.suffix == '.gz':
-            potential_unzipped_file = Path(local_file_path.as_posix().rstrip('.gz'))
-            if potential_unzipped_file.exists():
-                return potential_unzipped_file
-        return local_file_path
-
-    def download_and_process_file(self):
-        if not self.local_file.exists():
-            try:
-                response = requests.get(self.external_url, stream=True)
-                response.raise_for_status()  # Raises a HTTPError if the HTTP request returned an unsuccessful status code
-                with open(self.local_file, 'wb') as f:
-                    f.write(response.content)
-                self.process_file()
-            except Exception as e:
-                print(f"Error during download: {e}")
-
-    def process_file(self):
-        if self.local_file.suffix == '.gz':
-            try:
-                gunzip(str(self.local_file))
-                # shutil.unpack_archive(str(self.local_file), extract_dir=self.local_path)
-                self.local_file = Path(self.local_file.as_posix().rstrip('.gz'))
-            except Exception as e:
-                print(f"Error during file processing: {e}")
+    gunzip(str(local_file_path))
+    local_file_path = Path(local_file_path.as_posix().rstrip('.gz'))
+    return local_file_path.parent
 
 
-def process_transcript(transcript_df, rev):
+def process_transcript(transcript_df, rev, cons_data):
     if transcript_df.empty:
         return None
 
@@ -103,31 +74,25 @@ def process_transcript(transcript_df, rev):
         cds_start, cds_end = cds_start[0], cds_end[0]
         data.update({'TIS': cds_start, 'TTS': cds_end, 'protein_id': transcript.protein_id})
 
-    if transcript.transcript_id in CONS_DATA:
-        data.update({'cons_available': True, 'cons_vector': CONS_DATA[transcript.transcript_id]})
+    if transcript.transcript_id in cons_data:
+        data.update({'cons_available': True, 'cons_vector': cons_data[transcript.transcript_id]['scores']})
+
     else:
         data.update({'cons_available': False})
 
     return data
 
 
-def retrieve_and_parse_ensembl_annotations(local_path, valid_biotypes=['protein_coding']):
-    gtex_url = 'https://storage.googleapis.com/adult-gtex/bulk-gex/v8/rna-seq/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz'
-    gtex_address = Download(gtex_url, local_path)
-    gtex_df = pd.read_csv(gtex_address.local_file, delimiter='\t', header=2)
+def retrieve_and_parse_ensembl_annotations(local_path, annotations_file, gtex_file, cons_file, valid_biotypes=('protein_coding')):
+    cons_data = unload_pickle(cons_file)
+
+    gtex_df = pd.read_csv(gtex_file, delimiter='\t', header=2)
     gtex_df.Name = gtex_df.apply(lambda row: row.Name.split('.')[0], axis=1)
     gtex_df = gtex_df.set_index('Name').drop(columns=['Description'])
 
-    ensembl_url = 'https://ftp.ensembl.org/pub/release-111/gtf/homo_sapiens/Homo_sapiens.GRCh38.111.gtf.gz'
-    ensembl_address = Download(ensembl_url, local_path)
-    ensembl_version = ensembl_address.local_file.name.split('.')[-2]
-    db_dir = ensembl_address.local_path / f'grch38_ensembl_v{ensembl_version}'
-    if not db_dir.exists():
-        db_dir.mkdir()
+    annotations = read_gtf(annotations_file)
 
-    annotations = read_gtf(ensembl_address.local_file)
     for gene_id, gene_df in tqdm(annotations.groupby('gene_id')):
-        file_name = biotype_path / f'mrnas_{gene_id}_{gene_attribute.gene_name}.pkl'
         biotype = gene_df.gene_biotype.unique().tolist()
         chrm = gene_df.seqname.unique().tolist()
         strand = gene_df.strand.unique().tolist()
@@ -140,10 +105,11 @@ def retrieve_and_parse_ensembl_annotations(local_path, valid_biotypes=['protein_
         if biotype[0] not in valid_biotypes:
             continue
 
-        biotype_path = db_dir / biotype[0]
+        biotype_path = local_path / biotype[0]
         if not biotype_path.exists():
             biotype_path.mkdir()
 
+        file_name = biotype_path / f'mrnas_{gene_id}_{gene_attribute.gene_name}.pkl'
         if file_name.exists():
             continue
 
@@ -159,28 +125,20 @@ def retrieve_and_parse_ensembl_annotations(local_path, valid_biotypes=['protein_
             'tag': gene_attribute.tag.split(','),
             'primary_transcript': True if 'Ensembl' in gene_attribute.tag else False,
             'biotype': gene_attribute.gene_biotype,
-            'transcripts': {transcript_id: process_transcript(transcript_df, rev) for transcript_id, transcript_df in
+            'transcripts': {transcript_id: process_transcript(transcript_df, rev, cons_data) for transcript_id, transcript_df in
                             gene_df.groupby('transcript_id') if transcript_id},
             'tissue_expression': gtex_df.loc[gene_id].squeeze().to_dict() if gene_id in gtex_df.index else {},
         }
 
         json_data['transcripts'] = {tid: v for tid, v in json_data['transcripts'].items() if v is not None}
-
         if not json_data['transcripts']:
             continue
-
 
         if gene_attribute.gene_name == '' or gene_id == '':
             continue
 
-
         dump_pickle(file_name, json_data)
 
-
-def load_grch38_fasta(local_path):
-    gtex_address = Download('https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/latest/hg38.fa.gz', local_path)
-    split_fasta(gtex_address.local_file, gtex_address.local_path / 'grch38')
-    return None
 
 
 def split_fasta(input_file, output_directory):
@@ -222,19 +180,36 @@ def write_sequence(output_directory, header, sequence):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Oncosplice Data Setup")
-    parser.add_argument("basedir", help="The location of the directory where you want to establish a Grch38 database.")
+    base_path = Path(__file__).parent
+    print(f"Currect Directory: {base_path}")
+
+    parser = argparse.ArgumentParser(description="Conservation file location")
+    parser.add_argument("consfile", help="The location of the conservation data file.")
     args = parser.parse_args()
+    cons_file = Path(args.consfile)
+    assert cons_file.exists(), f"{cons_file} does not exist. Please provide a path to the conservation data."
 
-    _ = retrieve_and_parse_ensembl_annotations(args.basedir)
-    _ = load_grch38_fasta(args.basedir)
+    if base_path.exists() and len(os.listdir(base_path)) > 0:
+        raise FileExistsError(f"Directory {base_path} not empty.")
 
-    import oncosplice
-    init_path = os.path.join(oncosplice.__file__, '__init__.py')
+    elif not base_path.exists():
+        print(f"Initializing data folder at {base_path}.")
+        base_path.mkdir()
 
-    # Write the content
-    with open(init_path, 'a') as file:
-        file.write(f'database_path = \'{args.basedir}\'')
+    gtex_url = 'https://storage.googleapis.com/adult-gtex/bulk-gex/v8/rna-seq/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz'
+    gtex_file = download_and_ungzip(gtex_url, base_path)
+
+    ensembl_url = 'https://ftp.ensembl.org/pub/release-111/gtf/homo_sapiens/Homo_sapiens.GRCh38.111.gtf.gz'
+    ensembl_file = download_and_ungzip(ensembl_url, base_path)
+    ensembl_annotation_path = base_path / f'annotations'
+    ensembl_annotation_path.mkdir()
+    retrieve_and_parse_ensembl_annotations(base_path, ensembl_file, gtex_file, cons_file)
+
+    fasta_url = 'https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/latest/hg38.fa.gz'
+    fasta_file = download_and_ungzip(ensembl_url, base_path)
+    fasta_build_path = base_path / f'chromosomes'
+    fasta_build_path.mkdir()
+    split_fasta(fasta_file, fasta_build_path)
 
     print(f"Finished mounding database in {args.basedir}.")
 
