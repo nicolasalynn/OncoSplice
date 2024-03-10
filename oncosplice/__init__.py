@@ -3,6 +3,13 @@ __version__ = '0.1.0'
 from pathlib import Path
 import os, sys
 
+
+def get_data_dir():
+    data_dir = os.path.join(os.path.expanduser('~'), '.oncosplice', 'config.txt')
+    with open(data_dir, 'r') as config_file:
+        return config_file.readline().split('=')[1].strip()
+
+
 # temp_loc = '/'.join(os.path.dirname(__file__).split('/')[:-1])
 #
 # oncosplice_setup = {}
