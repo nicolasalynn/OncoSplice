@@ -1,13 +1,16 @@
 __version__ = '0.1.0'
 
 from pathlib import Path
-import os, sys
+import os
 
+data_dir = os.path.join(os.path.expanduser('~'), '.oncosplice_setup', 'config.txt')
+with open(data_dir, 'r') as config_file:
+    base_path = Path(config_file.readline().split('=')[1].strip())
 
-def get_data_dir():
-    data_dir = os.path.join(os.path.expanduser('~'), '.oncosplice', 'config.txt')
-    with open(data_dir, 'r') as config_file:
-        return config_file.readline().split('=')[1].strip()
+oncosplice_setup = {
+        'CHROM_SOURCE': base_path / 'chromosomes',
+        'MRNA_PATH': base_path / 'annotations' / 'protein_coding',
+}
 
 
 # temp_loc = '/'.join(os.path.dirname(__file__).split('/')[:-1])

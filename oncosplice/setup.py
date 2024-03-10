@@ -8,6 +8,7 @@ import requests
 import argparse
 from sh import gunzip
 
+
 def download_and_ungzip(external_url, local_path):
     local_file = Path(external_url).name
     local_file_path = Path(local_path) / local_file
@@ -221,6 +222,9 @@ def main():
     ensembl_annotation_path.mkdir()
     retrieve_and_parse_ensembl_annotations(ensembl_annotation_path, ensembl_file, gtex_file, cons_file)
 
+    fasta_file.unlink()
+    gtex_file.unlink()
+    ensembl_file.unlink()
     print(f"Finished mounding database in {args.basepath}.")
 
 if __name__ == '__main__':
