@@ -140,6 +140,10 @@ def retrieve_and_parse_ensembl_annotations(local_path, valid_biotypes=['protein_
         if biotype[0] not in valid_biotypes:
             continue
 
+        biotype_path = db_dir / biotype[0]
+        if not biotype_path.exists():
+            biotype_path.mkdir()
+
         if file_name.exists():
             continue
 
@@ -165,9 +169,6 @@ def retrieve_and_parse_ensembl_annotations(local_path, valid_biotypes=['protein_
         if not json_data['transcripts']:
             continue
 
-        biotype_path = db_dir / biotype[0]
-        if not biotype_path.exists():
-            biotype_path.mkdir()
 
         if gene_attribute.gene_name == '' or gene_id == '':
             continue
