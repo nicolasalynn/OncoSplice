@@ -9,8 +9,9 @@ import shutil
 import argparse
 import gzip
 
-script_dir = os.path.dirname(__file__)
-resources_dir = os.path.join(script_dir, 'resources')
+# script_dir = os.path.dirname(__file__)
+# resources_dir = os.path.join(script_dir, 'resources')
+resources_dir = '/tamir2/nicolaslynn/tools/OncoSplice/oncosplice/resources'
 CONS_DATA = unload_pickle(os.path.join(resources_dir, 'conservation.pkl'))
 
 class Download:
