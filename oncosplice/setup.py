@@ -174,11 +174,11 @@ def retrieve_and_parse_ensembl_annotations(local_path, valid_biotypes=['protein_
 
 def load_grch38_fasta(local_path):
     gtex_address = Download('https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/latest/hg38.fa.gz', local_path)
-    split_gzipped_fasta(gtex_address.local_file, gtex_address.local_path / 'grch38')
+    split_fasta(gtex_address.local_file, gtex_address.local_path / 'grch38')
     return None
 
 
-def split_gzipped_fasta(input_file, output_directory):
+def split_fasta(input_file, output_directory):
     """
     Splits a gzipped FASTA file into multiple files, each containing a single sequence.
     File names are derived from the sequence identifier in the FASTA header.
@@ -186,7 +186,8 @@ def split_gzipped_fasta(input_file, output_directory):
     :param input_file: Path to the input gzipped FASTA file.
     :param output_directory: Directory where output FASTA files will be saved.
     """
-    with gzip.open(input_file, 'rt') as file:  # 'rt' for reading text from a gzipped file
+
+    with open(input_file, 'r') as file:
         sequence = ''
         header = ''
         for line in file:
