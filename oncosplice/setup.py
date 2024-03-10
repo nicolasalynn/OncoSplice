@@ -108,13 +108,14 @@ def process_transcript(transcript_df, rev):
     return data
 
 
-def retrieve_and_parse_ensembl_annotations(ensembl_url, local_path, valid_biotypes=['protein_coding']):
+def retrieve_and_parse_ensembl_annotations(local_path, valid_biotypes=['protein_coding']):
     gtex_url = 'https://storage.googleapis.com/adult-gtex/bulk-gex/v8/rna-seq/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz'
     gtex_address = Download(gtex_url, local_path)
     gtex_df = pd.read_csv(gtex_address.local_file, delimiter='\t', header=2)
     gtex_df.Name = gtex_df.apply(lambda row: row.Name.split('.')[0], axis=1)
     gtex_df = gtex_df.set_index('Name').drop(columns=['Description'])
 
+    ensembl_url = 'https://ftp.ensembl.org/pub/release-111/gtf/homo_sapiens/Homo_sapiens.GRCh38.111.gtf.gz'
     ensembl_address = Download(ensembl_url, local_path)
     ensembl_version = ensembl_address.local_file.name.split('.')[-2]
     db_dir = ensembl_address.local_path / f'grch38_ensembl_v{ensembl_version}'
@@ -225,7 +226,6 @@ if __name__ == '__main__':
     # Write the content
     with open(init_path, 'a') as file:
         file.write(f'database_path = \'{args.basedir}\'')
-
 
     print(f"Finished mounding database in {args.basedir}.")
 
