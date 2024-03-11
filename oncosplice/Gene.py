@@ -139,6 +139,7 @@ class Transcript:
 
     def load_from_dict(self, data):
         for k, v in data.items():
+            print(v)
             setattr(self, k, v)
         self.__arrange_boundaries()
         self.generate_mature_mrna(inplace=True)
@@ -174,8 +175,6 @@ class Transcript:
         return sorted(temp, reverse=self.rev)
 
     def __arrange_boundaries(self):
-        print(self.acceptors)
-        print(self.rev)
         self.acceptors.append(self.transcript_start)
         self.donors.append(self.transcript_end)
         self.acceptors = list(set(self.acceptors))
