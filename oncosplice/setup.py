@@ -187,13 +187,18 @@ def main():
     config_dir.mkdir()
 
     parser = argparse.ArgumentParser(description="Conservation file location")
-    parser.add_argument("consfile", help="The location of the conservation data file.")
-    parser.add_argument("basepath", help="The location of the data we are mounting.")
+    parser.add_argument("consfile", help="The location of the conservation data file.", required=True)
+    parser.add_argument("basepath", help="The location of the data we are mounting.", required=True)
+    parser.add_argument("splicepath", help="The location of the data we are mounting.", required=False, default=None)
     args = parser.parse_args()
 
-    config_file = config_dir / 'config.txt'
-    with open(config_file, 'w') as cf:
-        cf.write(f"DATA_DIR={args.basepath}")
+    config_file = config_dir / 'config.json'
+    config_paths = {
+        'CHROM_SOURCE': os.path.join(args.basepath, 'chromosomes'),
+        'MRNA_PATH': os.path.join(args.basepath, 'annotations'),
+        'MISSPLICING_PATH': args.splicepath if args.splicepath is not None else os.path.join(args.basepath, 'missplicing')
+    }
+    dump_json(config_file, config_paths)
 
     cons_file = Path(args.consfile)
     assert cons_file.exists(), f"{cons_file} does not exist. Please provide a path to the conservation data."

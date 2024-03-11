@@ -1,16 +1,11 @@
-__version__ = '0.1.0'
+__version__ = '1.0.0'
 
 from pathlib import Path
 import os
+from geney import unload_json
 
-data_dir = os.path.join(os.path.expanduser('~'), '.oncosplice_setup', 'config.txt')
-with open(data_dir, 'r') as config_file:
-    base_path = Path(config_file.readline().split('=')[1].strip())
-
-oncosplice_setup = {
-        'CHROM_SOURCE': base_path / 'chromosomes',
-        'MRNA_PATH': base_path / 'annotations' / 'protein_coding',
-}
+config_file = os.path.join(os.path.expanduser('~'), '.oncosplice_setup', 'config.json')
+oncosplice_setup = {k: Path(p) for k, p in unload_json(config_file).items()}
 
 
 # temp_loc = '/'.join(os.path.dirname(__file__).split('/')[:-1])
