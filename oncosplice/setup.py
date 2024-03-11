@@ -60,6 +60,8 @@ def process_transcript(transcript_df, rev, cons_data):
         'transcript_start': int(transcript_start),
         'transcript_end': int(transcript_end),
         'tag': transcript.tag,
+        'primary_transcript': True if 'Ensembl' in transcript.tag else False,
+
     }
 
     if acceptors and donors:
@@ -110,11 +112,11 @@ def retrieve_and_parse_ensembl_annotations(local_path, annotations_file, gtex_fi
         if not biotype_path.exists():
             biotype_path.mkdir()
 
+        gene_attribute = gene_attribute.squeeze()
         file_name = biotype_path / f'mrnas_{gene_id}_{gene_attribute.gene_name}.pkl'
         if file_name.exists():
             continue
 
-        gene_attribute = gene_attribute.squeeze()
         rev = True if gene_attribute.strand == '-' else False
         json_data = {
             'gene_name': gene_attribute.gene_name,
@@ -124,7 +126,6 @@ def retrieve_and_parse_ensembl_annotations(local_path, annotations_file, gtex_fi
             'gene_end': gene_attribute.end,
             'rev': rev,
             'tag': gene_attribute.tag.split(','),
-            'primary_transcript': True if 'Ensembl' in gene_attribute.tag else False,
             'biotype': gene_attribute.gene_biotype,
             'transcripts': {transcript_id: process_transcript(transcript_df, rev, cons_data) for transcript_id, transcript_df in
                             gene_df.groupby('transcript_id') if transcript_id},
@@ -234,3 +235,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
