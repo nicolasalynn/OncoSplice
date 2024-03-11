@@ -86,8 +86,7 @@ def process_transcript(transcript_df, rev, cons_data):
     return data
 
 
-def retrieve_and_parse_ensembl_annotations(local_path, annotations_file, gtex_file, cons_file, valid_biotypes=('protein_coding')):
-    cons_data = unload_pickle(cons_file)
+def retrieve_and_parse_ensembl_annotations(local_path, annotations_file, gtex_file, cons_data, valid_biotypes=('protein_coding')):
 
     gtex_df = pd.read_csv(gtex_file, delimiter='\t', header=2)
     gtex_df.Name = gtex_df.apply(lambda row: row.Name.split('.')[0], axis=1)
@@ -188,7 +187,7 @@ def main():
     config_dir.mkdir()
 
     parser = argparse.ArgumentParser(description="Conservation file location")
-    parser.add_argument("consfile", help="The location of the conservation data file.", required=True)
+    parser.add_argument("consfile", help="The location of the conservation data file.", required=False, default=None)
     parser.add_argument("basepath", help="The location of the data we are mounting.", required=True)
     parser.add_argument("splicepath", help="The location of the data we are mounting.", required=False, default=None)
     args = parser.parse_args()
@@ -201,8 +200,14 @@ def main():
     }
     dump_json(config_file, config_paths)
 
-    cons_file = Path(args.consfile)
-    assert cons_file.exists(), f"{cons_file} does not exist. Please provide a path to the conservation data."
+    if args.consfile is not None:
+        cons_file = Path(args.consfile)
+        assert cons_file.exists(), f"{cons_file} does not exist. Please provide a path to the conservation data."
+        cons_data = unload_pickle(cons_file)
+
+    else:
+        print("No conservation data provided. Defaulting to uniform amino acid importance.")
+        cons_data = {}
 
     base_path = Path(args.basepath)
     if base_path.exists() and len(os.listdir(base_path)) > 0:
@@ -226,7 +231,7 @@ def main():
     ensembl_file = download_and_ungzip(ensembl_url, base_path)
     ensembl_annotation_path = base_path / f'annotations'
     ensembl_annotation_path.mkdir()
-    retrieve_and_parse_ensembl_annotations(ensembl_annotation_path, ensembl_file, gtex_file, cons_file)
+    retrieve_and_parse_ensembl_annotations(ensembl_annotation_path, ensembl_file, gtex_file, cons_data)
 
     fasta_file.unlink()
     gtex_file.unlink()
