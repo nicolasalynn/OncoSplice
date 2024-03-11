@@ -317,6 +317,8 @@ def find_files_by_gene_name(directory, gene_name):
     elif len(matching_files) == 0:
         raise FileNotFoundError(f"No files available for gene {gene_name}.")
 
+    file = matching_files[0]
+    # print(file)
     return matching_files[0]
 
 

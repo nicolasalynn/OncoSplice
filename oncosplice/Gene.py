@@ -1,8 +1,8 @@
 from copy import copy
-import json
+# import json
 from Bio.Seq import Seq
 from oncosplice.variant_utils import generate_mut_variant, Mutation, find_new_tis, find_new_tts
-from oncosplice.utils import find_files_by_gene_name, Fasta_segment, reverse_complement, unload_json
+from oncosplice.utils import find_files_by_gene_name, Fasta_segment, reverse_complement, unload_pickle
 from pathlib import Path
 import os
 import re
@@ -20,10 +20,10 @@ script_dir = os.path.dirname(__file__)
 resources_dir = os.path.join(script_dir, 'resources')
 
 # kozak_pssm_loc = pkg_resources.resource_filename('oncosplice', 'resources/kozak_pssm.json')
-PSSM = unload_json(os.path.join(resources_dir, 'kozak_pssm.json'))
+# PSSM = unload_json(os.path.join(resources_dir, 'kozak_pssm.json'))
 
 # tree_model_state = pkg_resources.resource_filename('oncosplice', 'resources/tis_regressor_model.joblib')
-TREE_MODEL = load(os.path.join(resources_dir, 'tis_regressor_model.joblib'))
+# TREE_MODEL = load(os.path.join(resources_dir, 'tis_regressor_model.joblib'))
 
 
 class Gene:
@@ -59,7 +59,7 @@ class Gene:
         if not file_name.exists():
             raise FileNotFoundError(f"File '{file_name}' not found.")
 
-        self.load_from_dict(dict_data=json.load(open(file_name)))
+        self.load_from_dict(dict_data=unload_pickle(file_name))
         return self
 
     def load_from_dict(self, dict_data=None):

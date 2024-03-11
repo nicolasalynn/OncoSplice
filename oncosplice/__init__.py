@@ -2,7 +2,7 @@ __version__ = '1.0.0'
 
 from pathlib import Path
 import os
-from geney import unload_json
+from oncosplice.utils import unload_json
 
 config_file = os.path.join(os.path.expanduser('~'), '.oncosplice_setup', 'config.json')
 if Path(config_file).exists():
