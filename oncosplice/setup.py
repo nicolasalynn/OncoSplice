@@ -61,6 +61,7 @@ def process_transcript(transcript_df, rev, cons_data):
         'transcript_end': int(transcript_end),
         'tag': transcript.tag,
         'primary_transcript': True if 'Ensembl' in transcript.tag else False,
+        'rev': rev
 
     }
 

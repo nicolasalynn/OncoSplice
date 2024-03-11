@@ -139,7 +139,6 @@ class Transcript:
 
     def load_from_dict(self, data):
         for k, v in data.items():
-            print(v)
             setattr(self, k, v)
         self.__arrange_boundaries()
         self.generate_mature_mrna(inplace=True)
