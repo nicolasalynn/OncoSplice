@@ -1,5 +1,5 @@
 
-from oncosplice.utils import Fasta_segment, reverse_complement, find_files_by_gene_name, unload_json, dump_json
+from oncosplice.utils import Fasta_segment, reverse_complement, find_files_by_gene_name, unload_json, dump_json, unload_pickle
 from oncosplice import oncosplice_setup
 from oncosplice.variant_utils import generate_mut_variant
 
@@ -98,8 +98,8 @@ def run_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500, sai_thresho
                                                 seq_end_pos)
 
 
-    gene_data = unload_json(
-        find_files_by_gene_name(gene_name=mutations.gene, directory=oncosplice_setup['MRNA_PATH']))
+    gene_data = unload_pickle(
+        find_files_by_gene_name(gene_name=mutations.gene, directory=oncosplice_setup['MRNA_PATH'] / 'protein_coding'))
     gene_start, gene_end, rev = gene_data['gene_start'], gene_data['gene_end'], gene_data['rev']
 
     mrna_acceptors = sorted(list(set([lst for lsts in
