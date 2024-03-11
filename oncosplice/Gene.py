@@ -174,6 +174,8 @@ class Transcript:
         return sorted(temp, reverse=self.rev)
 
     def __arrange_boundaries(self):
+        print(self.acceptors)
+        print(self.rev)
         self.acceptors.append(self.transcript_start)
         self.donors.append(self.transcript_end)
         self.acceptors = list(set(self.acceptors))

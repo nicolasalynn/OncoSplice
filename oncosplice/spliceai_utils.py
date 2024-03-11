@@ -169,6 +169,8 @@ class PredictSpliceAI:
             self.spliceai_db = oncosplice_setup['MISSPLICING_PATH'] / f'spliceai_epistatic'
         else:
             self.spliceai_db = oncosplice_setup['MISSPLICING_PATH'] / f'spliceai_individual'
+
+        print(f"SpliceDB is {self.spliceai_db}")
         self.missplicing = {}
 
         if self.prediction_file_exists() and not force:
@@ -205,6 +207,7 @@ class PredictSpliceAI:
         return self.prediction_file.exists()
 
     def load_sai_predictions(self):
+        print(self.prediction_file)
         missplicing = unload_json(self.prediction_file)
         missplicing = {outk: {float(k): v for k, v in outv.items()} for outk, outv in missplicing.items()}
         missplicing = {outk: {int(k) if k.is_integer() or 'missed' in outk else k: v for k, v in outv.items()} for
