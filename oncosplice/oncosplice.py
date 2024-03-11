@@ -3,16 +3,16 @@ import pandas as pd
 from Bio import pairwise2
 import re
 from copy import deepcopy
-from pathlib import Path
-from geney import unload_pickle
+# from pathlib import Path
+# from geney import unload_pickle
 from oncosplice.spliceai_utils import PredictSpliceAI
 from oncosplice.Gene import Gene, Transcript
 from oncosplice.variant_utils import Variations, develop_aberrant_splicing
-from oncosplice import oncosplice_setup
+# from oncosplice import oncosplice_setup
 
 sample_mut_id = 'KRAS:12:25227343:G:T'
 
-def oncosplice(mutation: str, sai_threshold=0.25, prevalence_threshold=0.25, target_directory=Path('/tamir2/nicolaslynn/projects/mutation_colabs/mrna_database'), annotate=False) -> pd.DataFrame:
+def oncosplice(mutation: str, sai_threshold=0.25, prevalence_threshold=0.25, annotate=False) -> pd.DataFrame:
     '''
         :param mutation: str
                         the genomic variation
@@ -28,12 +28,8 @@ def oncosplice(mutation: str, sai_threshold=0.25, prevalence_threshold=0.25, tar
 
     print(f'>> Processing: {mutation}')
     mutation = Variations(mutation)                                             # Generate mutation object
-    file = target_directory / f'mrna_{mutation.gene}.json'                      # Gene annotations should be available in the target directory under the file name mrna_gene.json
-    if not file.exists():                                                       # Ensure that the annotation file exists
-        print(f'Missing annotation files for: {mutation.gene}')
-        return pd.DataFrame()
-
-    gene = Gene(file=file)                                                      # We obtain the annotation file and convert it into a Gene object
+    # Gene annotations should be available in the target directory under the file name mrna_gene.json
+    gene = Gene(mutation.gene)                                                      # We obtain the annotation file and convert it into a Gene object
     aberrant_splicing = PredictSpliceAI(mutation, threshold=sai_threshold)      # SpliceAI predictions are processed and obtained for each mutation
     # Oncosplice obtains predictions for each transcript in the annotation file
     results = pd.concat([oncosplice_transcript(reference_transcript.generate_protein(), mutation, aberrant_splicing, prevalence_threshold, annotate) for
@@ -55,22 +51,24 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
     :return:
     '''
     reports = []
-    file = oncosplice_setup['CONS_PATH'] / f"cons_{reference_transcript.transcript_id}.pkl"
-    if not file.exists():
-        print(f"Missing conservation data for: {reference_transcript.transcript_id} ({file})")
-        cons_seq, cons_vector, cons_available  = '', np.ones(len(reference_transcript.protein), dtype=float), False
+    # file = oncosplice_setup['CONS_PATH'] / f"cons_{reference_transcript.transcript_id}.pkl"
+    # if not file.exists():
+    #     print(f"Missing conservation data for: {reference_transcript.transcript_id} ({file})")
+    #     cons_seq, cons_vector, cons_available  = '', np.ones(len(reference_transcript.protein), dtype=float), False
+
+    # else:
+    #     cons_data = unload_pickle(file)
+    #     cons_seq, cons_vector, cons_available = cons_data['seq'], cons_data['scores'], True
+
+    if reference_transcript['cons_available'] and reference_transcript['cons_seq'].replace('*', '') == reference_transcript.protein:
+        if len(reference_transcript['cons_vector']) == len(reference_transcript) + 1:
+            reference_transcript['cons_vector'] = reference_transcript['cons_vector'][:-1]
+        if len(reference_transcript['cons_vector']) != len(reference_transcript.protein):
+            raise ValueError(f"Length of conservation ({len(reference_transcript['cons_vector'])})is not equal to the length of the protein ({len(reference_transcript.protein)}).")
+        cons_available, cons_vector = True, reference_transcript['cons_vector']
+        cons_available = True
 
     else:
-        cons_data = unload_pickle(file)
-        cons_seq, cons_vector, cons_available = cons_data['seq'], cons_data['scores'], True
-
-    if cons_available and cons_seq == reference_transcript.protein:
-        pass
-    elif cons_available and '*' in cons_seq and '*' not in reference_transcript.protein and cons_seq[:-1] == reference_transcript.protein:
-        cons_vector = cons_vector[:-1]
-    elif cons_available and '*' in reference_transcript.protein and '*' not in cons_seq and reference_transcript.protein[:-1] == cons_seq:
-        cons_vector = np.append(cons_vector, [np.mean(cons_vector)])
-    elif cons_available:
         cons_available, cons_vector = False, np.ones(len(reference_transcript.protein), dtype=float)
 
     # For each transcript, we generate a series of isoforms based on the splice site predictions; each isoform is assigned a prevalence score
@@ -95,19 +93,24 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
             'variant_length': len(variant_transcript.protein.replace('*', ''))
         }
         report.update(calculate_oncosplice_scores(deleted, inserted, cons_vector))
+        report.update(calculate_oncosplice_scores(deleted, inserted, cons_vector, 10))
+        report.update(calculate_oncosplice_scores(deleted, inserted, cons_vector, 30))
+        report.update(calculate_oncosplice_scores(deleted, inserted, cons_vector, 70))
+        report.update(calculate_oncosplice_scores(deleted, inserted, cons_vector, 100))
 
         if annotate:
             report.update(OncospliceAnnotator(reference_transcript, variant_transcript, mutation))
             report['insertions'] = inserted
             report['deletions'] = deleted
             report['full_missplicing'] = aberrant_splicing.missplicing
+
         reports.append(report)
 
     reports = pd.DataFrame(reports)
     reports['cons_available'] = int(cons_available)
     reports['transcript_id'] = reference_transcript.transcript_id
     reports['cons_sum'] = np.sum(np.exp(np.negative(cons_vector)))
-    reports['transcript_length'] = len(reference_transcript.protein.replace('*', ''))
+    reports['transcript_length'] = len(reference_transcript.protein)
     return reports[reports.isoform_prevalence >= prevalence_threshold]
 
 
@@ -186,7 +189,7 @@ def transform_conservation_vector(conservation_vector, window_size=10):
     factor = (100 / window_size) // 1
     moving_avg = moving_average_conv(conservation_vector, window_size)
     transformed_vector = np.exp(factor * np.negative(moving_avg))
-    return transformed_vector * 100 / sum(transformed_vector) # or max(transformed_vector)
+    return transformed_vector / max(transformed_vector) # or 100 / sum(transformed_vector)
 
 
 def find_unmodified_positions(sequence_length, deletions, insertions, reach_limit=38):
@@ -207,13 +210,31 @@ def find_unmodified_positions(sequence_length, deletions, insertions, reach_limi
 
     for pos, insertion in insertions.items():
         reach = min(len(insertion) // 2, reach_limit)
-        front_end, back_end = max(0, pos - reach), min(sequence_length, pos + reach + 1)
+        front_end, back_end = max(0, pos - reach), min(sequence_length-1, pos + reach + 1)
         len_start, len_end = pos - front_end, back_end - pos
+
         try:
-            unmodified_positions[front_end:back_end + 1] = np.concatenate([np.linspace(0, 1, len_start)[::-1], [0], np.linspace(0, 1, len_end)])
-        except:
-            print(f"Error here... {len(unmodified_positions[front_end:back_end + 1])}, {len(np.concatenate([np.linspace(0, 1, len_start)[::-1], [0], np.linspace(0, 1, len_end)]))}")
-            unmodified_positions[front_end:back_end + 1] = np.zeros(len(unmodified_positions[front_end:back_end + 1]))
+            gradient_front = np.linspace(0, 1, len_start, endpoint=False)[::-1]
+            gradient_back = np.linspace(0, 1, len_end, endpoint=False)
+            combined_gradient = np.concatenate([gradient_front, [0], gradient_back])
+            unmodified_positions[front_end:back_end] = combined_gradient
+
+        except ValueError as e:
+            print(
+                f"Error: {e} | Lengths: unmodified_positions_slice={back_end - front_end}, combined_gradient={len(combined_gradient)}")
+            unmodified_positions[front_end:back_end] = np.zeros(back_end - front_end)
+
+    # for pos, insertion in insertions.items():
+    #     reach = min(len(insertion) // 2, reach_limit)
+    #     front_end, back_end = max(0, pos - reach), min(sequence_length, pos + reach + 1)
+    #     len_start, len_end = pos - front_end, back_end - pos
+    #     try:
+    #         unmodified_positions[front_end:back_end + 1] = np.concatenate([np.linspace(0, 1, len_start)[::-1], [0], np.linspace(0, 1, len_end)])
+    #     except:
+    #         print(f"Error here... {len(unmodified_positions[front_end:back_end + 1])}, {len(np.concatenate([np.linspace(0, 1, len_start)[::-1], [0], np.linspace(0, 1, len_end)]))}")
+    #         unmodified_positions[front_end:back_end + 1] = np.zeros(len(unmodified_positions[front_end:back_end + 1]))
+    #
+
     return unmodified_positions
 
 def calculate_oncosplice_scores(deletions, insertions, cons_vector, window_size=4):
@@ -243,9 +264,7 @@ def calculate_oncosplice_scores(deletions, insertions, cons_vector, window_size=
     else:
         second_highest_score = np.max(viable_secondary_scores)
         gof_prob = (max_score - second_highest_score) / max_score
-    return {'gof': gof_prob, 'oncosplice_score': max_score}
-
-
+    return {f'gof_{window_size}': gof_prob, f'oncosplice_score_{window_size}': max_score}
 
 def calculate_penalty(domains, cons_scores, W, is_insertion=False):
     """

@@ -1,5 +1,5 @@
 
-from geney import reverse_complement, pull_fasta_seq_endpoints, get_correct_gene_file, unload_json, dump_json
+from oncosplice_utils import Fasta_segment, reverse_complement, find_files_by_gene_name, unload_json, dump_json
 from oncosplice import oncosplice_setup
 from oncosplice.variant_utils import generate_mut_variant
 
@@ -91,9 +91,15 @@ def run_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500, sai_thresho
     seq_start_pos = min(positions) - sai_mrg_context - min_coverage
     seq_end_pos = max(positions) + sai_mrg_context + min_coverage  # + 1
 
-    ref_seq, ref_indices = pull_fasta_seq_endpoints(mutations.chrom, seq_start_pos, seq_end_pos)
+    # ref_seq, ref_indices = pull_fasta_seq_endpoints(mutations.chrom, seq_start_pos, seq_end_pos)
+    fasta_obj = Fasta_segment()
+    ref_seq, ref_indices = fasta_obj.read_segment_endpoints(oncosplice_setup['CHROM_SOURCE'] / f'chr{mutations.chrom}.fasta',
+                                                seq_start_pos,
+                                                seq_end_pos)
+
+
     gene_data = unload_json(
-        get_correct_gene_file(gene_identifier=mutations.gene, target_directory=oncosplice_setup['MRNA_PATH']))
+        find_files_by_gene_name(gene_name=mutations.gene, directory=oncosplice_setup['MRNA_PATH']))
     gene_start, gene_end, rev = gene_data['gene_start'], gene_data['gene_end'], gene_data['rev']
 
     mrna_acceptors = sorted(list(set([lst for lsts in
@@ -157,7 +163,12 @@ class PredictSpliceAI:
     def __init__(self, mutation, threshold=0.5, force=False, sai_mrg_context=5000, min_coverage=2500):
         self.modification = mutation
         self.threshold = threshold
-        self.spliceai_db = oncosplice_setup['MISSPLICING_PATH'] / f'spliceai_epistatic'
+        print(f"Running SpliceAI on {mutation.mut_id}")
+
+        if '|' in mutation.mut_id:
+            self.spliceai_db = oncosplice_setup['MISSPLICING_PATH'] / f'spliceai_epistatic'
+        else:
+            self.spliceai_db = oncosplice_setup['MISSPLICING_PATH'] / f'spliceai_individual'
         self.missplicing = {}
 
         if self.prediction_file_exists() and not force:
@@ -222,8 +233,6 @@ class PredictSpliceAI:
                 if abs(d['delta']) > max_delta:
                     max_delta = abs(d['delta'])
         return max_delta
-
-
 
 def check_splicing_difference(missplicing1, missplicing2, threshold=None):
     flag = False

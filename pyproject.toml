@@ -5,10 +5,17 @@ description = ""
 authors = ["Nico Lynn <nicolasalynn@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+#python = "3.9.15"
+#biopython = "1.81"
 #gtfparse = "1.3.0"
+#networkx = "3.1"
+#spliceai = "1.3.1"
+#numpy = "1.22.3"
+#pandas = "1.4.2"
 #keras = "2.4.3"
-
+#tensorflow = "2.4.1"
+#tqdm = "4.66.1"
+#viennarna = "2.4.18"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
@@ -20,4 +27,4 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.scripts]
 datasetup = 'oncosplice.setup:main'
 
-# poetry run datasetup --arg1 value1 --arg2 value2
+# poetry run datasetup -c /Users/nl/Documents/phd/data/Rate4Site/conservation.pkl -b /Users/nl/Documents/phd/data/oncosplice_database

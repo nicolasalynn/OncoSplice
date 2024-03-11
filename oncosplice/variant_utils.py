@@ -3,8 +3,7 @@ import networkx as nx
 import random
 from pathlib import Path
 from dataclasses import dataclass
-from geney import is_monotonic
-from geney.genomic.translation import END_CODONS
+from oncosplice.utils import END_CODONS, is_monotonic
 
 
 class Mutation:

@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 from gtfparse import read_gtf
-from geney import dump_json, dump_pickle, unload_pickle
+from oncosplice.utils import dump_json, dump_pickle, unload_pickle
 import pandas as pd
 from tqdm import tqdm
 import requests
@@ -78,7 +78,7 @@ def process_transcript(transcript_df, rev, cons_data):
         data.update({'TIS': cds_start, 'TTS': cds_end, 'protein_id': transcript.protein_id})
 
     if transcript.transcript_id in cons_data:
-        data.update({'cons_available': True, 'cons_vector': cons_data[transcript.transcript_id]['scores']})
+        data.update({'cons_available': True, 'cons_vector': cons_data[transcript.transcript_id]['scores'], 'cons_seq': cons_data[transcript.transcript_id]['seq']})
 
     else:
         data.update({'cons_available': False})
@@ -233,6 +233,10 @@ def main():
     ensembl_annotation_path = base_path / f'annotations'
     ensembl_annotation_path.mkdir()
     retrieve_and_parse_ensembl_annotations(ensembl_annotation_path, ensembl_file, gtex_file, cons_data)
+
+    splicing_path = Path(config_paths['MISSPLICING_PATH'])
+    if not splicing_path.exists():
+        splicing_path.mkdir(parents=True)
 
     fasta_file.unlink()
     gtex_file.unlink()

@@ -1,20 +1,16 @@
 from copy import copy
-from geney import get_correct_gene_file, reverse_complement, pull_fasta_seq_endpoints
 import json
-# from geney import get_correct_gene_file, reverse_complement, pull_fasta_seq_endpoints
 from Bio.Seq import Seq
-# import json
 from oncosplice.variant_utils import generate_mut_variant, Mutation, find_new_tis, find_new_tts
+from oncosplice.utils import find_files_by_gene_name, Fasta_segment, reverse_complement, unload_json
 from pathlib import Path
-from oncosplice import oncosplice_setup
-# from oncosplice.tis_utils import TISFInder
 import os
 import re
 import numpy as np
 import subprocess
-from geney import unload_json
-import pkg_resources
 from joblib import load
+
+from oncosplice import oncosplice_setup
 
 file = Path('/Users/nl/Documents/phd/data/ensembl/mRNAs/protein_coding/mrnas_ENSG00000006283.18_CACNA1G.json')
 
@@ -29,8 +25,9 @@ PSSM = unload_json(os.path.join(resources_dir, 'kozak_pssm.json'))
 # tree_model_state = pkg_resources.resource_filename('oncosplice', 'resources/tis_regressor_model.joblib')
 TREE_MODEL = load(os.path.join(resources_dir, 'tis_regressor_model.joblib'))
 
+
 class Gene:
-    def __init__(self, gene_name=None, file=None, dict_data=None, target_directory=oncosplice_setup['MRNA_PATH']):
+    def __init__(self, gene_name):
         self.gene_name = gene_name
         self.gene_id = ''
         self.rev = None
@@ -38,14 +35,7 @@ class Gene:
         self.gene_start = 0
         self.gene_end = 0
         self.transcripts = {}
-        if gene_name:
-            file = get_correct_gene_file(gene_name, target_directory=target_directory)
-            if file.exists():
-                self.load_from_file(file)
-        elif dict_data:
-            self.load_from_dict(dict_data)
-        elif file:
-            self.load_from_file(file)
+        self.load_from_file(find_files_by_gene_name(oncosplice_setup['MRNA_PATH'] / 'protein_coding', gene_name))
 
     def __repr__(self):
         return f'Gene(gene_name={self.gene_name})'   #.format(gname=self.gene_name)
@@ -77,11 +67,13 @@ class Gene:
             setattr(self, k, v)
         return self
 
-    def write_annotation_file(self, file_name):
-        with open(file_name, 'w') as out:
-            json.dump(out, self.__dict__)
+    # def write_annotation_file(self, file_name):
+    #     with open(file_name, 'w') as out:
+    #         json.dump(out, self.__dict__)
 
-    def generate_transcript(self, tid):
+    def generate_transcript(self, tid=None):
+        if tid == None:
+            tid = [k for k, v in self.transcripts.items() if v['primary_transcript']][0]
         return Transcript(self.transcripts[tid])
 
     # @property
@@ -203,11 +195,12 @@ class Transcript:
         return mrna, indices
 
     def pull_pre_mrna_pos(self):
+        fasta_obj = Fasta_segment()
         if self.rev:
-            return pull_fasta_seq_endpoints(self.chrm, self.transcript_end,
+            return fasta_obj.read_segment_endpoints(oncosplice_setup['CHROM_SOURCE'] / f'chr{self.chrm}.fasta', self.transcript_end,
                                                                    self.transcript_start)
         else:
-            return pull_fasta_seq_endpoints(self.chrm, self.transcript_start,
+            return fasta_obj.read_segment_endpoints(oncosplice_setup['CHROM_SOURCE'] / f'chr{self.chrm}.fasta', self.transcript_start,
                                                                    self.transcript_end)
 
     def generate_pre_mrna_pos(self, mutations=[]):
@@ -245,7 +238,7 @@ class Transcript:
         rel_start = self.transcript_indices.index(self.TIS)
         rel_end = self.transcript_indices.index(self.TTS)
         orf = self.transcript_seq[rel_start:rel_end + 1 + 3]
-        protein = str(Seq(orf).translate())
+        protein = str(Seq(orf).translate()).replace('*', '')
         if inplace:
             self.orf = orf
             self.protein = protein
