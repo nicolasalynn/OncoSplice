@@ -104,10 +104,10 @@ def run_spliceai(mutations, sai_mrg_context=5000, min_coverage=2500, sai_thresho
 
     mrna_acceptors = sorted(list(set([lst for lsts in
                                       [mrna.get('acceptors', []) for mrna in gene_data['transcripts'].values() if
-                                       mrna['transcript_type'] == 'protein_coding'] for lst in lsts])))
+                                       mrna['transcript_biotype'] == 'protein_coding'] for lst in lsts])))
     mrna_donors = sorted(list(set([lst for lsts in
                                    [mrna.get('donors', []) for mrna in gene_data['transcripts'].values() if
-                                    mrna['transcript_type'] == 'protein_coding'] for lst in lsts])))
+                                    mrna['transcript_biotype'] == 'protein_coding'] for lst in lsts])))
 
     visible_donors = np.intersect1d(mrna_donors, ref_indices)
     visible_acceptors = np.intersect1d(mrna_acceptors, ref_indices)

@@ -91,7 +91,7 @@ class Transcript:
         self.transcript_id = None
         self.transcript_start = None
         self.transcript_end = None
-        self.transcript_type = None
+        self.transcript_biotype = None
         self.acceptors, self.donors = [], []
         self.TIS, self.TTS = None, None
         self.transcript_seq, self.transcript_indices = '', []
@@ -113,7 +113,7 @@ class Transcript:
     def __str__(self):
         return 'Transcript {tid}, Transcript Type: ' \
                '{protein_coding}'.format(
-                tid=self.transcript_id, protein_coding=self.transcript_type)
+                tid=self.transcript_id, protein_coding=self.transcript_biotype)
 
     def __eq__(self, other):
         return self.transcript_seq == other.transcript_seq
@@ -134,7 +134,7 @@ class Transcript:
 
     @property
     def constructor(self):
-        core_attributes = ['transcript_id', 'transcript_start', 'transcript_end', 'transcript_type', 'acceptors', 'donors', 'TIS', 'TTS', 'rev', 'chrm']
+        core_attributes = ['transcript_id', 'transcript_start', 'transcript_end', 'transcript_biotype', 'acceptors', 'donors', 'TIS', 'TTS', 'rev', 'chrm']
         return {k: v for k, v in self.__dict__.items() if k in core_attributes}
 
     def load_from_dict(self, data):

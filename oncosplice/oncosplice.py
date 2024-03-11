@@ -33,7 +33,7 @@ def oncosplice(mutation: str, sai_threshold=0.25, prevalence_threshold=0.25, ann
     aberrant_splicing = PredictSpliceAI(mutation, threshold=sai_threshold)      # SpliceAI predictions are processed and obtained for each mutation
     # Oncosplice obtains predictions for each transcript in the annotation file
     results = pd.concat([oncosplice_transcript(reference_transcript.generate_protein(), mutation, aberrant_splicing, prevalence_threshold, annotate) for
-                         reference_transcript in gene])
+                         reference_transcript in gene if reference_transcript['transcript_biotype'] == 'protein_coding'])
 
     # Append some additional, uniform information to the results dataframe
     results['mut_id'] = mutation.mut_id
@@ -92,6 +92,7 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
                                                       min(76, len(reference_transcript.protein))),
             'variant_length': len(variant_transcript.protein.replace('*', ''))
         }
+
         report.update(calculate_oncosplice_scores(deleted, inserted, cons_vector))
         report.update(calculate_oncosplice_scores(deleted, inserted, cons_vector, 10))
         report.update(calculate_oncosplice_scores(deleted, inserted, cons_vector, 30))
