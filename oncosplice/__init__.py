@@ -5,8 +5,11 @@ import os
 from geney import unload_json
 
 config_file = os.path.join(os.path.expanduser('~'), '.oncosplice_setup', 'config.json')
-oncosplice_setup = {k: Path(p) for k, p in unload_json(config_file).items()}
-
+if Path(config_file).exists():
+    oncosplice_setup = {k: Path(p) for k, p in unload_json(config_file).items()}
+else:
+    print("Oncosplice database not setup.")
+    oncosplice_setup = {}
 
 # temp_loc = '/'.join(os.path.dirname(__file__).split('/')[:-1])
 #
