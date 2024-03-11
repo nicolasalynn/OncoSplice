@@ -187,9 +187,10 @@ def main():
     config_dir.mkdir()
 
     parser = argparse.ArgumentParser(description="Conservation file location")
-    parser.add_argument("consfile", help="The location of the conservation data file.", required=False, default=None)
-    parser.add_argument("basepath", help="The location of the data we are mounting.", required=True)
-    parser.add_argument("splicepath", help="The location of the data we are mounting.", required=False, default=None)
+    parser.add_argument("-b", "--basepath", help="The location of the data we are mounting.", required=True)
+    parser.add_argument("-c", "--consfile", help="The location of the conservation data file.", required=False, default=None)
+    parser.add_argument("-s", "--splicepath", help="The location of the data we are mounting.", required=False, default=None)
+
     args = parser.parse_args()
 
     config_file = config_dir / 'config.json'
