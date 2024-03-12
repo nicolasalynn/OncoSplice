@@ -2,7 +2,7 @@ __version__ = '1.0.0'
 
 from pathlib import Path
 import os
-from utils import unload_json
+# from utils import unload_json
 
 from .utils import *
 from .oncosplice import *
