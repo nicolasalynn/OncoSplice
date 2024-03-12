@@ -217,7 +217,10 @@ def find_unmodified_positions(sequence_length, deletions, insertions, reach_limi
         try:
             gradient_front = np.linspace(0, 1, len_start, endpoint=False)[::-1]
             gradient_back = np.linspace(0, 1, len_end, endpoint=False)
-            combined_gradient = np.concatenate([gradient_front, [0], gradient_back])
+            if len_end == 0:
+                combined_gradient = np.concatenate([gradient_front, gradient_back])
+            else:
+                combined_gradient = np.concatenate([gradient_front, [0], gradient_back])
             unmodified_positions[front_end:back_end] = combined_gradient
 
         except ValueError as e:
