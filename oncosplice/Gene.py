@@ -10,7 +10,7 @@ import numpy as np
 import subprocess
 # from joblib import load
 
-# from oncosplice import oncosplice_setup
+from oncosplice import oncosplice_setup
 
 file = Path('/Users/nl/Documents/phd/data/ensembl/mRNAs/protein_coding/mrnas_ENSG00000006283.18_CACNA1G.json')
 
