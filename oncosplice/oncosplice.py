@@ -90,7 +90,7 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
             'isoform_prevalence': new_boundaries['path_weight'],
             'legacy_oncosplice_score': calculate_legacy_oncosplice_score(deleted, inserted, cons_vector,
                                                       min(76, len(reference_transcript.protein))),
-            'variant_length': len(variant_transcript.protein.replace('*', ''))
+            'variant_length': len(variant_transcript.protein.replace('*', '')),
         }
 
         report.update(calculate_oncosplice_scores(deleted, inserted, cons_vector))
@@ -109,6 +109,8 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
     reports['transcript_id'] = reference_transcript.transcript_id
     reports['cons_sum'] = np.sum(np.exp(np.negative(cons_vector)))
     reports['transcript_length'] = len(reference_transcript.protein)
+    reports['primary_transcript'] = reference_transcript.primary_transcript
+
     return reports[reports.isoform_prevalence >= prevalence_threshold]
 
 
