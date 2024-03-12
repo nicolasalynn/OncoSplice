@@ -177,6 +177,8 @@ def moving_average_conv(vector, window_size, factor=1):
     """
     convolving_length = np.array([min(len(vector) + window_size - i, window_size, i)
                                   for i in range(window_size // 2, len(vector) + window_size // 2)], dtype=float)
+
+    print(convolving_length, vector, factor, window_size)
     return np.convolve(vector, np.ones(window_size), mode='same') / (convolving_length / factor)
 
 def transform_conservation_vector(conservation_vector, window_size=10):
