@@ -2,13 +2,13 @@ from copy import copy
 # import json
 from Bio.Seq import Seq
 from oncosplice.variant_utils import generate_mut_variant, Mutation, find_new_tis, find_new_tts
-from oncosplice.utils import find_files_by_gene_name, Fasta_segment, reverse_complement, unload_pickle
+from oncosplice.utils import find_files_by_gene_name, Fasta_segment, reverse_complement, unload_pickle, unload_json
 from pathlib import Path
 import os
 import re
 import numpy as np
 import subprocess
-# from joblib import load
+import joblib
 
 from oncosplice import oncosplice_setup
 
@@ -20,10 +20,10 @@ script_dir = os.path.dirname(__file__)
 resources_dir = os.path.join(script_dir, 'resources')
 
 # kozak_pssm_loc = pkg_resources.resource_filename('oncosplice', 'resources/kozak_pssm.json')
-# PSSM = unload_json(os.path.join(resources_dir, 'kozak_pssm.json'))
+PSSM = unload_json(os.path.join(resources_dir, 'kozak_pssm.json'))
 
 # tree_model_state = pkg_resources.resource_filename('oncosplice', 'resources/tis_regressor_model.joblib')
-# TREE_MODEL = load(os.path.join(resources_dir, 'tis_regressor_model.joblib'))
+TREE_MODEL = joblib.load(os.path.join(resources_dir, 'tis_regressor_model.joblib'))
 
 
 class Gene:
