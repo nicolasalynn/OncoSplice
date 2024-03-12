@@ -1,7 +1,7 @@
 
-# from oncosplice.utils import Fasta_segment, reverse_complement, find_files_by_gene_name, unload_json, dump_json, unload_pickle
-# from oncosplice import oncosplice_setup
-# from oncosplice.variant_utils import generate_mut_variant
+from oncosplice.utils import Fasta_segment, reverse_complement, find_files_by_gene_name, unload_json, dump_json, unload_pickle
+from oncosplice import oncosplice_setup
+from oncosplice.variant_utils import generate_mut_variant
 
 
 '''

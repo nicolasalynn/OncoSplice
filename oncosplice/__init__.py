@@ -7,8 +7,8 @@ import os
 from .utils import *
 from .oncosplice import *
 from .Gene import *
-from .variant_utils import *
-from .spliceai_utils import *
+# from .variant_utils import *
+# from .spliceai_utils import *
 
 config_file = os.path.join(os.path.expanduser('~'), '.oncosplice_setup', 'config.json')
 if Path(config_file).exists():
