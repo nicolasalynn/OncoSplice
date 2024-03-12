@@ -210,6 +210,10 @@ def find_unmodified_positions(sequence_length, deletions, insertions, reach_limi
         unmodified_positions[pos:pos + deletion_length] = 0
 
     for pos, insertion in insertions.items():
+        if pos >= sequence_length:
+            print(f"Sequence length: {sequence_length}, Position: {pos}, Insertion: {ins}")
+            continue
+
         reach = min(len(insertion) // 2, reach_limit)
         front_end, back_end = max(0, pos - reach), min(sequence_length-1, pos + reach)
         len_start, len_end = pos - front_end, back_end - pos
