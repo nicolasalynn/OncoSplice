@@ -26,7 +26,7 @@ def download_and_ungzip(external_url, local_path):
     return local_file_path
 
 
-def process_transcript(transcript_df, rev, cons_data):
+def process_transcript(transcript_df, rev, chrm, cons_data):
     if transcript_df.empty:
         return None
 
@@ -61,7 +61,8 @@ def process_transcript(transcript_df, rev, cons_data):
         'transcript_end': int(transcript_end),
         'tag': transcript.tag,
         'primary_transcript': True if 'Ensembl' in transcript.tag else False,
-        'rev': rev
+        'rev': rev,
+        'chrm': chrm
 
     }
 
@@ -118,16 +119,17 @@ def retrieve_and_parse_ensembl_annotations(local_path, annotations_file, gtex_fi
             continue
 
         rev = True if gene_attribute.strand == '-' else False
+        chrm = gene_attribute.seqname.replace('chr', '')
         json_data = {
             'gene_name': gene_attribute.gene_name,
-            'chrm': gene_attribute.seqname.replace('chr', ''),
+            'chrm': chrm,
             'gene_id': gene_attribute.gene_id,
             'gene_start': gene_attribute.start,
             'gene_end': gene_attribute.end,
             'rev': rev,
             'tag': gene_attribute.tag.split(','),
             'biotype': gene_attribute.gene_biotype,
-            'transcripts': {transcript_id: process_transcript(transcript_df, rev, cons_data) for transcript_id, transcript_df in
+            'transcripts': {transcript_id: process_transcript(transcript_df, rev, chrm, cons_data) for transcript_id, transcript_df in
                             gene_df.groupby('transcript_id') if transcript_id},
             'tissue_expression': gtex_df.loc[gene_id].squeeze().to_dict() if gene_id in gtex_df.index else {},
         }
