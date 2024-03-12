@@ -95,9 +95,6 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
 
         report.update(calculate_oncosplice_scores(deleted, inserted, cons_vector))
         report.update(calculate_oncosplice_scores(deleted, inserted, cons_vector, 10))
-        report.update(calculate_oncosplice_scores(deleted, inserted, cons_vector, 30))
-        report.update(calculate_oncosplice_scores(deleted, inserted, cons_vector, 70))
-        report.update(calculate_oncosplice_scores(deleted, inserted, cons_vector, 100))
 
         if annotate:
             report.update(OncospliceAnnotator(reference_transcript, variant_transcript, mutation))
@@ -178,7 +175,6 @@ def moving_average_conv(vector, window_size, factor=1):
     convolving_length = np.array([min(len(vector) + window_size - i, window_size, i)
                                   for i in range(window_size // 2, len(vector) + window_size // 2)], dtype=float)
 
-    print(convolving_length, vector, factor, window_size)
     return np.convolve(vector, np.ones(window_size), mode='same') / (convolving_length / factor)
 
 def transform_conservation_vector(conservation_vector, window_size=10):
@@ -213,8 +209,9 @@ def find_unmodified_positions(sequence_length, deletions, insertions, reach_limi
 
     for pos, insertion in insertions.items():
         if pos >= sequence_length:
-            print(f"Sequence length: {sequence_length}, Position: {pos}, Insertion: {ins}")
-            continue
+            pos = sequence_length - 1
+            # print(f"Sequence length: {sequence_length}, Position: {pos}, Insertion: {ins}")
+            # continue
 
         reach = min(len(insertion) // 2, reach_limit)
         front_end, back_end = max(0, pos - reach), min(sequence_length-1, pos + reach)
