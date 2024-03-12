@@ -5,9 +5,9 @@ import re
 from copy import deepcopy
 # from pathlib import Path
 # from geney import unload_pickle
-from oncosplice.spliceai_utils import PredictSpliceAI
-from oncosplice.Gene import Gene, Transcript
-from oncosplice.variant_utils import Variations, develop_aberrant_splicing
+# from oncosplice.spliceai_utils import PredictSpliceAI
+# from oncosplice.Gene import Gene, Transcript
+# from oncosplice.variant_utils import Variations, develop_aberrant_splicing
 # from oncosplice import oncosplice_setup
 
 sample_mut_id = 'KRAS:12:25227343:G:T'

@@ -3,7 +3,7 @@ import networkx as nx
 import random
 from pathlib import Path
 from dataclasses import dataclass
-from oncosplice.utils import END_CODONS, is_monotonic
+# from oncosplice.utils import END_CODONS, is_monotonic
 
 
 class Mutation:

@@ -1,8 +1,8 @@
 from copy import copy
 # import json
 from Bio.Seq import Seq
-from oncosplice.variant_utils import generate_mut_variant, Mutation, find_new_tis, find_new_tts
-from oncosplice.utils import find_files_by_gene_name, Fasta_segment, reverse_complement, unload_pickle
+# from oncosplice.variant_utils import generate_mut_variant, Mutation, find_new_tis, find_new_tts
+# from oncosplice.utils import find_files_by_gene_name, Fasta_segment, reverse_complement, unload_pickle
 from pathlib import Path
 import os
 import re
