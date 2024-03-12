@@ -59,7 +59,7 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
     #     cons_seq, cons_vector, cons_available = cons_data['seq'], cons_data['scores'], True
 
     if reference_transcript.cons_available and reference_transcript.cons_seq.replace('*', '') == reference_transcript.protein:
-        if len(reference_transcript.cons_vector) + 1 == len(reference_transcript.protein):
+        if len(reference_transcript.cons_vector) == len(reference_transcript.protein) + 1:
             reference_transcript.cons_vector = reference_transcript.cons_vector[:-1]
 
         if len(reference_transcript.cons_vector) != len(reference_transcript.protein):
