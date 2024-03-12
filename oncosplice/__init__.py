@@ -2,7 +2,13 @@ __version__ = '1.0.0'
 
 from pathlib import Path
 import os
-from oncosplice.utils import unload_json
+from utils import unload_json
+
+from .utils import *
+from .oncosplice import *
+from .Gene import *
+from .variant_utils import *
+from .spliceai_utils import *
 
 config_file = os.path.join(os.path.expanduser('~'), '.oncosplice_setup', 'config.json')
 if Path(config_file).exists():

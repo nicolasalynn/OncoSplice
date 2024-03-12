@@ -60,12 +60,12 @@ def oncosplice_transcript(reference_transcript: Transcript, mutation: Variations
     #     cons_data = unload_pickle(file)
     #     cons_seq, cons_vector, cons_available = cons_data['seq'], cons_data['scores'], True
 
-    if reference_transcript['cons_available'] and reference_transcript['cons_seq'].replace('*', '') == reference_transcript.protein:
-        if len(reference_transcript['cons_vector']) == len(reference_transcript) + 1:
-            reference_transcript['cons_vector'] = reference_transcript['cons_vector'][:-1]
-        if len(reference_transcript['cons_vector']) != len(reference_transcript.protein):
-            raise ValueError(f"Length of conservation ({len(reference_transcript['cons_vector'])})is not equal to the length of the protein ({len(reference_transcript.protein)}).")
-        cons_available, cons_vector = True, reference_transcript['cons_vector']
+    if reference_transcript.cons_available and reference_transcript.cons_seq.replace('*', '') == reference_transcript.protein:
+        if len(reference_transcript.cons_vector) == len(reference_transcript) + 1:
+            reference_transcript.cons_vector = reference_transcript.cons_vector[:-1]
+        if len(reference_transcript.cons_vector) != len(reference_transcript.protein):
+            raise ValueError(f"Length of conservation ({len(reference_transcript.cons_vector)})is not equal to the length of the protein ({len(reference_transcript.protein)}).")
+        cons_available, cons_vector = True, reference_transcript.cons_vector
         cons_available = True
 
     else:
